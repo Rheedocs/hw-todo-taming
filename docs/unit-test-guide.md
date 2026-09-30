@@ -11,7 +11,7 @@ npm test
 ## Naming
 `method_scenario_expectedResult`
 
-Example: `readContent_repositoryFails_throws`
+Example: `deleteTask_unknownId_returnsFalse`
 
 ## AAA: Arrange, Act, Assert
 Every test follows this structure.
@@ -19,18 +19,18 @@ Every test follows this structure.
 ```js
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { createFileService } = require('../src/services/fileService');
+const { createTaskService } = require('../src/services/taskService');
 
-test('readContent_repositoryReturnsText_returnsText', async () => {
-    // Arrange
-    const fakeRepository = { readFile: async () => 'Hej fra filen' };
-    const service = createFileService(fakeRepository);
+test('addTask_validText_returnsTaskWithDoneFalse', async () => {
+  // Arrange
+  const service = createTaskService(createFakeRepository());
 
-    // Act
-    const result = await service.readContent();
+  // Act
+  const task = await service.addTask('Skriv tests');
 
-    // Assert
-    assert.equal(result, 'Hej fra filen');
+  // Assert
+  assert.equal(task.text, 'Skriv tests');
+  assert.equal(task.done, false);
 });
 ```
 
@@ -41,44 +41,43 @@ Write the test before the code.
 2. Write the smallest code that makes it pass (green)
 3. Refactor without breaking the test (refactor)
 
-## Without fakes (pure logic)
-Used when the code has no external dependencies. The request logger and the emitter belong here.
-
-```js
-const { EventEmitter } = require('node:events');
-const { attachRequestLogger } = require('../src/events/requestLogger');
-
-test('attachRequestLogger_requestEmitted_writesMethodAndPath', () => {
-    // Arrange
-    const emitter = new EventEmitter();
-    const lines = [];
-    attachRequestLogger(emitter, (line) => lines.push(line));
-
-    // Act
-    emitter.emit('request', { method: 'GET', path: '/read-file' });
-
-    // Assert
-    assert.deepEqual(lines, ['GET /read-file']);
-});
-```
-
-## With fakes (external dependency)
+## Fakes
 Used when the code depends on the file system or another team member's part. Replace the dependency with a small fake that has the same functions as the matching type in `src/contracts.js`.
 
 ```js
-const fakeRepository = {
-    readFile: async () => { throw new Error('boom'); },
-    writeFile: async () => {},
-};
+function createFakeRepository(initialTasks = []) {
+  let tasks = [...initialTasks];
+  return {
+    readTasks: async () => [...tasks],
+    writeTasks: async (newTasks) => { tasks = newTasks; },
+  };
+}
 ```
 
 ```js
-test('readContent_repositoryFails_throws', async () => {
-    // Arrange
-    const service = createFileService(fakeRepository);
+test('deleteTask_unknownId_returnsFalse', async () => {
+  // Arrange
+  const service = createTaskService(createFakeRepository());
 
-    // Act and Assert
-    await assert.rejects(() => service.readContent());
+  // Act
+  const result = await service.deleteTask('findes-ikke');
+
+  // Assert
+  assert.equal(result, false);
+});
+```
+
+```js
+test('deleteTask_existingId_removesTask', async () => {
+  // Arrange
+  const repository = createFakeRepository([{ id: 'a', text: 'Test', done: false }]);
+  const service = createTaskService(repository);
+
+  // Act
+  await service.deleteTask('a');
+
+  // Assert
+  assert.deepEqual(await repository.readTasks(), []);
 });
 ```
 
@@ -88,50 +87,67 @@ test('readContent_repositoryFails_throws', async () => {
 ```js
 const { createApp } = require('../src/app');
 
-test('getReadFile_repositoryFails_returns500', async (t) => {
-    // Arrange
-    const fakeRepository = {
-        readFile: async () => { throw new Error('boom'); },
-        writeFile: async () => {},
-    };
-    const app = createApp({ fileRepository: fakeRepository, emitter: new EventEmitter() });
-    const server = app.listen(0);
-    t.after(() => server.close());
-    const { port } = server.address();
+test('postTasks_missingText_returns400', async (t) => {
+  // Arrange
+  const app = createApp({ taskRepository: createFakeRepository() });
+  const server = app.listen(0);
+  t.after(() => server.close());
+  const { port } = server.address();
 
-    // Act
-    const response = await fetch(`http://localhost:${port}/read-file`);
+  // Act
+  const response = await fetch(`http://localhost:${port}/api/tasks`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({}),
+  });
 
-    // Assert
-    assert.equal(response.status, 500);
+  // Assert
+  assert.equal(response.status, 400);
 });
 ```
 
 ## The repository (the only real file in tests)
-The repository is the only place where a real file is allowed, and only a temporary file, never `data/data.txt`.
+The repository is the only place where a real file is allowed, and only a temporary file, never `data/tasks.json`.
 
 ```js
 const os = require('node:os');
 const path = require('node:path');
-const { createFileRepository } = require('../src/repositories/fileRepository');
+const fs = require('fs-extra');
+const { createTaskRepository } = require('../src/repositories/taskRepository');
 
-test('readFile_fileMissing_throws', async () => {
-    // Arrange
-    const repository = createFileRepository(path.join(os.tmpdir(), 'findes-ikke.txt'));
+test('writeTasks_thenReadTasks_returnsSameTasks', async (t) => {
+  // Arrange
+  const filePath = path.join(os.tmpdir(), 'todo-test-tasks.json');
+  t.after(() => fs.remove(filePath));
+  const repository = createTaskRepository(filePath);
+  const tasks = [{ id: 'a', text: 'Test', done: false }];
 
-    // Act and Assert
-    await assert.rejects(() => repository.readFile());
+  // Act
+  await repository.writeTasks(tasks);
+  const result = await repository.readTasks();
+
+  // Assert
+  assert.deepEqual(result, tasks);
 });
 ```
 
-This tests the error scenario from the assignment without renaming any file.
+```js
+test('readTasks_fileMissing_throws', async () => {
+  // Arrange
+  const repository = createTaskRepository(path.join(os.tmpdir(), 'findes-ikke.json'));
+
+  // Act and Assert
+  await assert.rejects(() => repository.readTasks());
+});
+```
 
 ## Rules of thumb
 
-1. One thing per test. If it fails, you should know exactly what went wrong.
-2. Test the limits. `content` missing, `content` is a number, empty body, broken JSON, empty string.
-3. Test error cases. File missing, write fails, unknown route (404).
+1. One behaviour per test. If it fails, you should know exactly what went wrong.
+2. Test the limits. `text` missing, `text` is a number, empty text, only spaces, broken JSON.
+3. Test error cases. File missing, write fails, unknown id (404), unknown route (404).
 4. Fake the dependencies. Anything using the file system is replaced in tests, except the repository test above.
 5. No logic in tests. No if, no loops. Tests should be dumb and direct.
 6. Test behaviour, not implementation. Test what the code does, not how.
-7. Tests never read or write `data/data.txt`.
+7. Tests never read or write `data/tasks.json`.
+8. The frontend is tested by hand, see the manual test table in `AGENTS.md`.
