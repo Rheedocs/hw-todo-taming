@@ -59,7 +59,7 @@ A 204 response has no body, so the frontend must not call `response.json()` on D
 
 Plain HTML and JavaScript in the browser. No frameworks, no modules, no build step. No CSS framework unless the group agrees.
 
-1. All three calls use `fetch` with the relative path `/api/tasks`.
+1. All three calls use `fetch` with the relative path `/api/tasks`. POST must send the header `Content-Type: application/json` and the body as `JSON.stringify({ text })`, otherwise `req.body` is empty in the backend.
 2. After add or delete, call `loadTasks()` so the list is always drawn from the server.
 3. Build the list with `createElement` and `textContent`. Never put task text into `innerHTML` (XSS).
 4. Clicking a task (or its delete button) deletes it.
