@@ -4,6 +4,16 @@ This is a group assignment (Node.js, Express and fetch). The goal is not only wo
 
 The agent implements small, clearly scoped parts only. Never build the whole system in one go. No code is accepted unless the whole group can explain it.
 
+## Definition of done
+
+A task is done only when all of this is true:
+
+1. `npm run check` is green. It runs `npm test` and `npm run lint`.
+2. The manual tests that match the change have been run (see Tests).
+3. The agent has reported the change (see After every change).
+
+If anything is red, the task is not done. Never make a test, a lint rule or `eslint.config.js` weaker to get green. Fix the code instead. Changes to `eslint.config.js` need their own issue.
+
 ## The assignment
 
 A fullstack task app, the "Taskmaster". An Express backend stores tasks in a JSON file (no database). A frontend in plain HTML and JavaScript uses `fetch` to list tasks, add a task and delete a task.
@@ -14,6 +24,8 @@ A fullstack task app, the "Taskmaster". An Express backend stores tasks in a JSO
 npm install
 npm start
 npm test
+npm run lint
+npm run check
 ```
 
 The server runs on port 3000. Open `http://localhost:3000` in the browser. (Update if the structure changes.)
@@ -41,6 +53,20 @@ Dependencies only point one way: routes, controller, service, repository. A laye
 Dependency injection: layers get their dependencies as parameters through factory functions and never create them themselves: `createTaskRepository(filePath)`, `createTaskService(taskRepository)`, `createTaskController(taskService)`, `createTaskRoutes(taskController)`. Wiring happens only in `server.js` and `app.js`.
 
 File paths are built with `path.join(__dirname, ...)`, never relative to the folder the server was started from.
+
+## What the tools check
+
+`npm run lint` enforces these rules, so do not rely on memory or on reading the code:
+
+1. Max complexity 6 per function, max 25 lines per function, max 120 lines per file, max 3 parameters. This also applies to `public/main.js`.
+2. Services do not require `express`, `fs`, `fs-extra` or anything from controllers and routes.
+3. Repositories do not require `express` or anything from services, controllers and routes.
+4. Only the repository requires `fs` or `fs-extra`.
+5. `public/main.js` is checked as browser code (`document`, `window`, `fetch`), not as Node code.
+
+If lint fails, fix the code: split the function, move the logic to the right layer. Never add `eslint-disable` comments.
+
+Everything else in this file is a rule the agent follows itself and the group checks in review.
 
 ## API
 
@@ -86,7 +112,7 @@ Plain HTML and JavaScript in the browser. No frameworks, no modules, no build st
 2. Simple, readable code over clever solutions. The code must be explainable by everyone in the group.
 3. Small functions with one responsibility. KISS, no unnecessary complexity. Structure and architecture are followed, but never at the cost of KISS: if a rule makes the code harder to explain, stop and ask the group.
 4. Public functions use JSDoc comments (`/** ... */`) and refer to the types in `src/contracts.js`, e.g. `@param {import('../contracts').TaskRepository} taskRepository`.
-5. async/await, never callbacks. `fs-extra` is the only extra package. No others without asking. Use the built in `fetch` in tests.
+5. async/await, never callbacks. `fs-extra` and ESLint are the only extra packages. No others without asking. Use the built in `fetch` in tests.
 6. Commit style: short, lowercase, conventional commits with the prefix in English and the text in Danish, e.g. `feat: tilføj slet opgave`.
 
 ## Tests
@@ -107,14 +133,6 @@ Manual tests as a minimum:
 | Frontend: add a task | It appears in the list |
 | Frontend: click a task | It is deleted |
 
-Quick test without the frontend, in PowerShell (use `curl.exe`, because `curl` is an alias for something else there):
-
-```bash
-curl.exe http://localhost:3000/api/tasks
-curl.exe -X POST -H "Content-Type: application/json" -d "{\"text\":\"Ny opgave\"}" http://localhost:3000/api/tasks
-curl.exe -X DELETE http://localhost:3000/api/tasks/ID-HER
-```
-
 ## Git rules
 
 1. Work only on the branch for the current issue (e.g. `2/task_chain`).
@@ -125,9 +143,20 @@ curl.exe -X DELETE http://localhost:3000/api/tasks/ID-HER
 6. If the branch, files or build look wrong: stop and report. Do not repair something you do not understand.
 7. Never commit `node_modules/` or `.idea/`.
 8. If a file from another issue is missing, use a small fake with the same functions. Never create the real one yourself.
-9. Never change `src/contracts.js` without a separate issue.
+9. Never change `src/contracts.js` or `eslint.config.js` without a separate issue.
 
-## Working with the agent
+## Working method
+
+Work in small steps, one issue at a time. Follow `docs/unit-test-guide.md`.
+
+1. Red: write one failing test and see it fail.
+2. Green: write the smallest code that passes.
+3. Refactor: with the tests green, clean up. Clear names, small functions that do one thing, no duplication, no comments that only repeat the code. Run `npm run check`.
+4. Repeat for the next small step.
+
+The frontend has no automatic tests. There, work in small steps too, run `npm run lint` and test by hand with the manual test table.
+
+Do not pile up changes without cleaning up. If a fix breaks something else, fix that before moving on. If you go in circles (fix one thing, break another), stop and report what happens instead of trying again.
 
 Every task given to the agent follows this structure:
 
@@ -153,14 +182,16 @@ Order of work:
 
 The bonus tasks (done status, created date, dark theme, sorting) are separate issues, made only after the core is merged and tested.
 
-After every change: show which files and lines were changed, explain the change briefly, say which tests we should run and say if anything was changed that we did not ask for.
+After every change: show which files and lines were changed, explain the change briefly, say that `npm run check` is green, say which manual tests we should run and say if anything was changed that we did not ask for.
 
 ## Not the agent's job
 
 The answers to the reflection questions in the README must be in our own words: what happens on a crash, what a database would change, what happens when two users add at the same time, and how to add status, editing and deadlines. The agent may explain code when we ask, but does not write these texts.
 
+The group also reads the diff. Green checks do not replace that: we must be able to explain every line.
+
 ## Review mode
 
-When asked for a review, the agent may point out problems in: async/await and error handling, unhandled errors, status codes, read, change and write on the file (two requests at the same time can overwrite each other, and a crash during a write can damage the file), XSS in the frontend, layer responsibilities and unnecessary complexity.
+When asked for a review, the agent may point out problems in: async/await and error handling, unhandled errors, status codes, read, change and write on the file (two requests at the same time can overwrite each other, and a crash during a write can damage the file), XSS in the frontend, layer responsibilities, missing tests and unnecessary complexity. The agent may run `npm run check` and report the result.
 
 In review mode the agent must not change any code. Suggestions only.

@@ -6,8 +6,8 @@ Kort beskrivelse. Closes #
 
 * [ ] Kun filerne fra issuet er ændret
 * [ ] Ingen ændringer, vi ikke bad om
-* [ ] Jeg kan forklare al koden (await, fejlhåndtering, emit og on)
-* [ ] `npm test` kører, og manuel test er kørt
+* [ ] Jeg kan forklare al koden (await, fejlhåndtering, fetch)
+* [ ] `npm run check` er grøn (test og lint), og manuel test er kørt
 * [ ] `main` er merget ind før PR
 
 ## Agent

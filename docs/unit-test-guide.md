@@ -22,15 +22,15 @@ const assert = require('node:assert/strict');
 const { createTaskService } = require('../src/services/taskService');
 
 test('addTask_validText_returnsTaskWithDoneFalse', async () => {
-  // Arrange
-  const service = createTaskService(createFakeRepository());
+    // Arrange
+    const service = createTaskService(createFakeRepository());
 
-  // Act
-  const task = await service.addTask('Skriv tests');
+    // Act
+    const task = await service.addTask('Skriv tests');
 
-  // Assert
-  assert.equal(task.text, 'Skriv tests');
-  assert.equal(task.done, false);
+    // Assert
+    assert.equal(task.text, 'Skriv tests');
+    assert.equal(task.done, false);
 });
 ```
 
@@ -39,45 +39,45 @@ Write the test before the code.
 
 1. Write a failing test (red)
 2. Write the smallest code that makes it pass (green)
-3. Refactor without breaking the test (refactor)
+3. Refactor without breaking the test (refactor). Clean names, small functions, no duplication. Run `npm run check` afterwards.
 
 ## Fakes
 Used when the code depends on the file system or another team member's part. Replace the dependency with a small fake that has the same functions as the matching type in `src/contracts.js`.
 
 ```js
 function createFakeRepository(initialTasks = []) {
-  let tasks = [...initialTasks];
-  return {
-    readTasks: async () => [...tasks],
-    writeTasks: async (newTasks) => { tasks = newTasks; },
-  };
+    let tasks = [...initialTasks];
+    return {
+        readTasks: async () => [...tasks],
+        writeTasks: async (newTasks) => { tasks = newTasks; },
+    };
 }
 ```
 
 ```js
 test('deleteTask_unknownId_returnsFalse', async () => {
-  // Arrange
-  const service = createTaskService(createFakeRepository());
+    // Arrange
+    const service = createTaskService(createFakeRepository());
 
-  // Act
-  const result = await service.deleteTask('findes-ikke');
+    // Act
+    const result = await service.deleteTask('findes-ikke');
 
-  // Assert
-  assert.equal(result, false);
+    // Assert
+    assert.equal(result, false);
 });
 ```
 
 ```js
 test('deleteTask_existingId_removesTask', async () => {
-  // Arrange
-  const repository = createFakeRepository([{ id: 'a', text: 'Test', done: false }]);
-  const service = createTaskService(repository);
+    // Arrange
+    const repository = createFakeRepository([{ id: 'a', text: 'Test', done: false }]);
+    const service = createTaskService(repository);
 
-  // Act
-  await service.deleteTask('a');
+    // Act
+    await service.deleteTask('a');
 
-  // Assert
-  assert.deepEqual(await repository.readTasks(), []);
+    // Assert
+    assert.deepEqual(await repository.readTasks(), []);
 });
 ```
 
@@ -88,21 +88,21 @@ test('deleteTask_existingId_removesTask', async () => {
 const { createApp } = require('../src/app');
 
 test('postTasks_missingText_returns400', async (t) => {
-  // Arrange
-  const app = createApp({ taskRepository: createFakeRepository() });
-  const server = app.listen(0);
-  t.after(() => server.close());
-  const { port } = server.address();
+    // Arrange
+    const app = createApp({ taskRepository: createFakeRepository() });
+    const server = app.listen(0);
+    t.after(() => server.close());
+    const { port } = server.address();
 
-  // Act
-  const response = await fetch(`http://localhost:${port}/api/tasks`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({}),
-  });
+    // Act
+    const response = await fetch(`http://localhost:${port}/api/tasks`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({}),
+    });
 
-  // Assert
-  assert.equal(response.status, 400);
+    // Assert
+    assert.equal(response.status, 400);
 });
 ```
 
@@ -116,28 +116,28 @@ const fs = require('fs-extra');
 const { createTaskRepository } = require('../src/repositories/taskRepository');
 
 test('writeTasks_thenReadTasks_returnsSameTasks', async (t) => {
-  // Arrange
-  const filePath = path.join(os.tmpdir(), 'todo-test-tasks.json');
-  t.after(() => fs.remove(filePath));
-  const repository = createTaskRepository(filePath);
-  const tasks = [{ id: 'a', text: 'Test', done: false }];
+    // Arrange
+    const filePath = path.join(os.tmpdir(), 'todo-test-tasks.json');
+    t.after(() => fs.remove(filePath));
+    const repository = createTaskRepository(filePath);
+    const tasks = [{ id: 'a', text: 'Test', done: false }];
 
-  // Act
-  await repository.writeTasks(tasks);
-  const result = await repository.readTasks();
+    // Act
+    await repository.writeTasks(tasks);
+    const result = await repository.readTasks();
 
-  // Assert
-  assert.deepEqual(result, tasks);
+    // Assert
+    assert.deepEqual(result, tasks);
 });
 ```
 
 ```js
 test('readTasks_fileMissing_throws', async () => {
-  // Arrange
-  const repository = createTaskRepository(path.join(os.tmpdir(), 'findes-ikke.json'));
+    // Arrange
+    const repository = createTaskRepository(path.join(os.tmpdir(), 'findes-ikke.json'));
 
-  // Act and Assert
-  await assert.rejects(() => repository.readTasks());
+    // Act and Assert
+    await assert.rejects(() => repository.readTasks());
 });
 ```
 
