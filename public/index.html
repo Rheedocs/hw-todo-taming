@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="da">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>To Do Taming</title>
+    <link rel="stylesheet" href="style.css">
+  </head>
+  <body>
+    <main class="task-app">
+      <h1>Mine opgaver</h1>
+      <form id="task-form">
+        <label for="task-input">Ny opgave</label>
+        <div class="task-entry">
+          <input id="task-input" name="text" type="text" autocomplete="off">
+          <button type="submit">Tilføj</button>
+        </div>
+      </form>
+      <p id="error-message" class="error-message" role="alert" hidden></p>
+      <ul id="task-list" class="task-list"></ul>
+    </main>
+    <script src="main.js"></script>
+  </body>
+</html>
