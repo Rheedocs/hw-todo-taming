@@ -36,6 +36,18 @@ npm start
 
 Flere regler står i [AGENTS.md](AGENTS.md) og test reglerne i [docs/unit-test-guide.md](docs/unit-test-guide.md).
 
+## Frontend (Nicki)
+
+Siden henter opgaver fra `/api/tasks` med `fetch`. Tilføj sender POST, slet sender DELETE, og listen hentes igen bagefter. Tekst sættes ind med `textContent` og ikke `innerHTML`, så HTML i en opgave ikke kan køre som kode (XSS). DELETE svarer 204 uden body, så der kaldes ikke `response.json()`. Ved fejl tjekkes `response.ok`, og en fejlbesked vises på siden.
+
+## Fejlhåndtering og 404 (Nicki)
+
+`notFound` svarer 404, når ingen route matcher. `errorHandler` svarer 400 ved ugyldig JSON (`err.type === 'entity.parse.failed'`) og 500 ved alt andet. Beskeden er altid en fast dansk tekst, aldrig `err.message` eller stack trace. Express kræver fire parametre for en fejlmiddleware, men ESLint vil ikke have ubrugt `next`, så længden sættes til 4 med `Object.defineProperty`.
+
+## AI brug (Nicki)
+
+Jeg brugte Copilot til frontenden og til 404 og fejlhåndtering. Jeg bad om en plan først, rettede den, læste diffen og kørte `npm run check`, før jeg lavede PR.
+
 ## Refleksionsspørgsmål
 
 Skrives med egne ord.
