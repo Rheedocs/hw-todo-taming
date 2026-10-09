@@ -90,29 +90,50 @@ Skriv her.
 
 ## Wiring (Mat)
 
-<!-- Skriv med egne ord. Svar på:
-1. Hvad gør createApp, og hvorfor tager den repository ind udefra?
-2. Hvad gør server.js, og hvorfor bygges stien til tasks.json med path.join?
-3. Hvorfor er rækkefølgen express.json, express.static, routes under /api/tasks, notFound, errorHandler?
-4. Hvad er forskellen på notFound og errorHandler? Husk at notFound svarer selv med 404 og ikke sender videre med next. -->
 
-Skriv her.
+1. Hvad gør createApp, og hvorfor tager den repository ind udefra?
+createApp bygger Express-appen og kobler lagene sammen (repository → service → controller → routes). Repositoryet kommer udefra (dependency injection), så du kan bytte det ud med et falsk i tests eller skifte til en database uden at ændre app.js.
+
+2. Hvad gør server.js, og hvorfor bygges stien til tasks.json med path.join?
+server.js er indgangspunktet: det opretter det rigtige repository, sender det til createApp og starter serveren på port 3000. path.join med __dirname giver en korrekt sti på alle styresystemer, uanset hvorfra du starter node.
+
+3. Hvorfor er rækkefølgen express.json, express.static, routes under /api/tasks, notFound, errorHandler?
+Middleware kører i registreringsrækkefølge: json skal parse body før routes, static serverer filer før API’et, og routes skal komme før notFound, ellers ville gyldige ruter få 404. errorHandler står sidst, fordi den kun fanger fejl fra det, der er registreret før den.
+
+4. Hvad er forskellen på notFound og errorHandler? Husk at notFound svarer selv med 404 og ikke sender videre med next. -->
+notFound bruges, når ingen rute matchede, og den svarer selv med 404 uden next. errorHandler har fire parametre (err, req, res, next) og håndterer fejl, der kastes eller sendes videre med next(err).
+
 
 ## Test (Mat)
 
-<!-- Skriv med egne ord. Svar på:
-1. Hvilke seks tests er der i api.test.js, og hvad dækker de?
-2. Hvorfor bruger de en fake repository, så de ikke rører data/tasks.json?
-3. Hvorfor bruger vi app.listen(0), og hvorfor lukker vi serveren i t.after?
-4. Skriv kun om tests, du har set køre grønt. -->
 
-Skriv her.
+1. Hvilke seks tests er der i api.test.js, og hvad dækker de?
+Testene er integrationstests af API’et. De starter appen og sender rigtige HTTP-requests til den, og så tjekker de svaret. Hver test følger Arrange-Act-Assert: først sætter man data op, så kalder man API’et, og til sidst tjekker man resultatet. Det kan man se på kommentarerne i filen.
+
+2. Hvorfor bruger de en fake repository, så de ikke rører data/tasks.json?
+Appen er bygget med dependency injection. createApp laver ikke selv sit repository, men får det givet som parameter: createApp({ taskRepository }). I produktion er det et repository, der læser og skriver data/tasks.json. I testene giver vi den en fake i stedet, som blot gemmer opgaverne i en variabel i hukommelsen. Fake’en har de samme to metoder, readTasks og writeTasks, så appen opfører sig, som om den talte med det rigtige repository.
+
+3. Hvorfor bruger vi app.listen(0), og hvorfor lukker vi serveren i t.after?
+For at sende rigtige HTTP-requests med fetch skal appen lytte på en port, og en hardcodet port som 3000 kan give konflikter, hvis den er optaget af fx din udviklingsserver eller af andre tests. Derfor bruger vi listen(0), så operativsystemet vælger en ledig port, som testen aflæser med server.address().port og bygger URL’en ud fra.
+
+t.after(() => server.close()) lukker serveren, når testen er færdig, uanset om den lykkedes eller fejlede, så porten og forbindelserne ikke bliver hængende. Ellers kan Node-processen blive ved med at køre efter testene, og der hober sig åbne servere op, så oprydning er en del af at skrive pålidelige tests.
+
+4. Skriv kun om tests, du har set køre grønt. 
+getTasks_existingTasks_returns200AndList kalder GET /api/tasks. Den tjekker, at statuskoden er 200, og at listen er præcis den opgave, som den fake repository blev fyldt med.
+postTasks_withText_returns201AndNewTask sender en POST med teksten “Skriv tests”. Den forventer 201 Created og en ny opgave med et id som string, den rigtige tekst og done: false.
+postTasks_missingText_returns400 sender en POST med et tomt objekt og forventer 400 Bad Request. Det er en test af inputvalidering.
+deleteTask_existingId_returns204 sletter en opgave, der findes, og forventer 204 No Content, altså at det lykkedes uden noget at sende tilbage.
+deleteTask_unknownId_returns404 forsøger at slette et id, der ikke findes, og forventer 404 Not Found.
+getUnknownRoute_unmatchedPath_returns404 kalder en sti, der slet ikke er defineret i appen, og forventer 404. 
+
+
 
 ## AI brug (Mat)
 
-<!-- Hvad bad du Copilot om, hvad ændrede den, og hvad tjekkede du selv i diffen? Skriv kun det, du selv har gjort. -->
 
-Skriv her.
+Jeg bad Copilot om at skrive tests for API’et. Jeg rettede dem, så de fulgte Arrange-Act-Assert, og tjekkede, at de kørte grønt.
+derudover fik jeg Copilot til at lave en plan for api.test.js og for app.js og server.js da jeg skulle lave wiring. 
+jeg tjekket diffen efter hver promt for at sikre mig, at jeg forstod, hvad der blev lavet, og at det var korrekt.
 
 ## Refleksionsspørgsmål
 
