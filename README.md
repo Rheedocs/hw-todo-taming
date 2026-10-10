@@ -64,29 +64,35 @@ Jeg brugte Copilot til frontenden og til 404 og fejlhåndtering. Jeg bad om en p
 
 ## Backend (Gon)
 
-<!-- Skriv med egne ord, 5 til 8 sætninger. Svar på:
-1. Hvilke filer er kæden, og hvad gør hver af dem (route, controller, service, repository)?
-2. Hvorfor bruger vi readJson og writeJson, og hvad er forskellen på dem og fs.promises?
-3. Hvilke statuskoder svarer controlleren med, og hvornår (201, 204, 400, 404, 500)?
-4. Hvad sker der, hvis tasks.json er ødelagt? Hvem fanger fejlen, og hvad får klienten?
-5. Hvorfor ligger id og done: false i servicen og ikke i controlleren? -->
 
-Skriv her.
+1. Hvilke filer er kæden, og hvad gør hver af dem (route, controller, service, repository)?
+Kæden er route → controller → service → repository. Routen sender requesten videre til den rigtige controller-funktion. Controlleren tjekker input og sender svaret. Servicen laver logikken, fx at give en ny opgave et id. Repositoryet læser og skriver i tasks.json.
+2. Hvorfor bruger vi readJson og writeJson, og hvad er forskellen på dem og fs.promises?
+Vi bruger readJson og writeJson, fordi de selv laver JSON om til tekst og tilbage igen. fs.promises kan kun læse og skrive almindelig tekst.
+3. Hvilke statuskoder svarer controlleren med, og hvornår (201, 204, 400, 404, 500)?
+Controlleren svarer 200 ved hent og 201, når en task er oprettet. Den svarer 204, når en task er slettet. Den svarer 400, hvis teksten er tom, og 404, hvis tasken ikke findes. Fejl i servicen eller filen giver 500.
+4. Hvad sker der, hvis tasks.json er ødelagt? Hvem fanger fejlen, og hvad får klienten?
+Når tasks.json er ødelagt, kaster fs.readJson en fejl i repositoryet. Fejlen bobler op til controllerens try/catch, som fanger den og svarer 500 med en fejlbesked.
+5. Hvorfor ligger id og done: false i servicen og ikke i controlleren? 
+Id og done: false ligger i servicen, fordi det er forretningsregler om en ny task. Controlleren skal kun håndtere HTTP.
+
 
 ## Test (Gon)
 
-<!-- Skriv med egne ord. Svar på:
-1. Hvad tester repository testene, og hvorfor bruger de en midlertidig fil?
-2. Hvad tester service testene, og hvorfor bruger de en fake repository?
-3. Hvad betyder navnene, fx deleteTask_unknownId_returnsFalse? -->
 
-Skriv her.
+1. Hvad tester repository testene, og hvorfor bruger de en midlertidig fil?
+   Repository testene tjekker at man kan skrive og læse de samme tasks, at læsning fejler, hvis filen mangler, og at skrivning fejler, hvis stien er en mappe. Vi bruger en midlertidig mappe, så testene ikke bruger den rigtige tasks.json, og hver test starter helt ren.
+2. Hvad tester service testene, og hvorfor bruger de en fake repository?
+Service testene tjekker, at man kan tilføje og slette tasks, at man ikke kan tilføje en task uden tekst, og at man ikke kan slette en task, der ikke findes. Vi bruger en fake repository, så vi ikke rører den rigtige tasks.json, og vi kan tvinge repositoryet til at fejle.
+3. Hvad betyder navnene, fx deleteTask_unknownId_returnsFalse? 
+DeleteTask er det der slettes. UnknownId er inputtet, og returnsFalse er forventningen. Navnene fortæller, hvad testen gør, og hvad den forventer.
+
+
 
 ## AI brug (Gon)
 
-<!-- Hvad bad du Copilot om, hvad ændrede den, og hvad tjekkede du selv i diffen? Skriv kun det, du selv har gjort. -->
+Jeg brugte Copilot til backenden. Jeg bad om en plan udefra mit issue, og implementerede den. Derefter tjekkede jeg diffen og kørte `npm run check`, før jeg lavede PR. 
 
-Skriv her.
 
 ## Wiring (Mat)
 
