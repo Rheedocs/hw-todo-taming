@@ -45,7 +45,7 @@ Siden henter opgaver fra `/api/tasks` med `fetch`. Tilføj sender POST, slet sen
 
 ## Fejlhåndtering og 404 (Nicki)
 
-`notFound` svarer 404, når ingen route matcher. `errorHandler` svarer 400 ved ugyldig JSON (`err.type === 'entity.parse.failed'`) og 500 ved alt andet. Beskeden er altid en fast dansk tekst, aldrig `err.message` eller stack trace. Express kræver fire parametre for en fejlmiddleware, men ESLint vil ikke have ubrugt `next`, så længden sættes til 4 med `Object.defineProperty`.
+`notFound` svarer 404, når ingen route matcher. `errorHandler` svarer 400 ved ugyldig JSON (`err.type === 'entity.parse.failed'`) og 500 ved alt andet. Beskeden er altid en fast dansk tekst, aldrig `err.message` eller stack trace. `errorHandler` har de fire almindelige parametre (`err, req, res, next`), som Express kræver for en fejlmiddleware, og `max-params` i ESLint er sat til 4, så det er tilladt.
 
 ## Test (Nicki)
 
@@ -64,82 +64,88 @@ Jeg brugte Copilot til frontenden og til 404 og fejlhåndtering. Jeg bad om en p
 
 ## Backend (Gon)
 
+**1. Hvilke filer er kæden, og hvad gør hver af dem?**
 
-1. Hvilke filer er kæden, og hvad gør hver af dem (route, controller, service, repository)?
-Kæden er route → controller → service → repository. Routen sender requesten videre til den rigtige controller-funktion. Controlleren tjekker input og sender svaret. Servicen laver logikken, fx at give en ny opgave et id. Repositoryet læser og skriver i tasks.json.
-2. Hvorfor bruger vi readJson og writeJson, og hvad er forskellen på dem og fs.promises?
-Vi bruger readJson og writeJson, fordi de selv laver JSON om til tekst og tilbage igen. fs.promises kan kun læse og skrive almindelig tekst.
-3. Hvilke statuskoder svarer controlleren med, og hvornår (201, 204, 400, 404, 500)?
-Controlleren svarer 200 ved hent og 201, når en task er oprettet. Den svarer 204, når en task er slettet. Den svarer 400, hvis teksten er tom, og 404, hvis tasken ikke findes. Fejl i servicen eller filen giver 500.
-4. Hvad sker der, hvis tasks.json er ødelagt? Hvem fanger fejlen, og hvad får klienten?
-Når tasks.json er ødelagt, kaster fs.readJson en fejl i repositoryet. Fejlen bobler op til controllerens try/catch, som fanger den og svarer 500 med en fejlbesked.
-5. Hvorfor ligger id og done: false i servicen og ikke i controlleren? 
-Id og done: false ligger i servicen, fordi det er forretningsregler om en ny task. Controlleren skal kun håndtere HTTP.
+Kæden er route, controller, service og repository. Routen sender requesten videre til den rigtige controller funktion. Controlleren tjekker input og sender svaret. Servicen laver logikken, fx at give en ny opgave et id. Repositoryet læser og skriver i `tasks.json`.
 
+**2. Hvorfor bruger vi readJson og writeJson, og hvad er forskellen på dem og fs.promises?**
+
+`readJson` og `writeJson` kommer fra `fs-extra`. De laver selv JSON om til tekst og tilbage igen. `fs.promises` kan kun læse og skrive almindelig tekst, så der skulle vi selv bruge `JSON.parse` og `JSON.stringify`.
+
+**3. Hvilke statuskoder svarer controlleren med, og hvornår?**
+
+200 ved hent og 201, når en opgave er oprettet. 204, når en opgave er slettet. 400, hvis teksten er tom, og 404, hvis opgaven ikke findes. Fejl i servicen eller filen giver 500.
+
+**4. Hvad sker der, hvis tasks.json er ødelagt?**
+
+`readJson` kaster en fejl i repositoryet. Fejlen bobler op til controllerens `try/catch`, som fanger den og svarer 500 med en fast fejlbesked.
+
+**5. Hvorfor ligger id og done: false i servicen og ikke i controlleren?**
+
+Det er forretningsregler om en ny opgave. Controlleren skal kun håndtere HTTP.
 
 ## Test (Gon)
 
+**1. Hvad tester repository testene, og hvorfor bruger de en midlertidig fil?**
 
-1. Hvad tester repository testene, og hvorfor bruger de en midlertidig fil?
-   Repository testene tjekker at man kan skrive og læse de samme tasks, at læsning fejler, hvis filen mangler, og at skrivning fejler, hvis stien er en mappe. Vi bruger en midlertidig mappe, så testene ikke bruger den rigtige tasks.json, og hver test starter helt ren.
-2. Hvad tester service testene, og hvorfor bruger de en fake repository?
-Service testene tjekker, at man kan tilføje og slette tasks, at man ikke kan tilføje en task uden tekst, og at man ikke kan slette en task, der ikke findes. Vi bruger en fake repository, så vi ikke rører den rigtige tasks.json, og vi kan tvinge repositoryet til at fejle.
-3. Hvad betyder navnene, fx deleteTask_unknownId_returnsFalse? 
-DeleteTask er det der slettes. UnknownId er inputtet, og returnsFalse er forventningen. Navnene fortæller, hvad testen gør, og hvad den forventer.
+De tjekker, at man kan skrive og læse de samme opgaver, at læsning fejler, hvis filen mangler, og at skrivning fejler, hvis stien er en mappe. Vi bruger en midlertidig mappe, så testene ikke rører den rigtige `tasks.json`, og hver test starter helt ren.
 
+**2. Hvad tester service testene, og hvorfor bruger de en fake repository?**
 
+De tjekker, at man kan hente opgaver, tilføje en opgave med gyldig tekst, slette en opgave der findes, og at sletning af et ukendt id giver `false`. Tom tekst afvises i controlleren, ikke i servicen. Vi bruger en fake repository, så vi ikke rører den rigtige `tasks.json`.
+
+**3. Hvad betyder navnene, fx deleteTask_unknownId_returnsFalse?**
+
+`deleteTask` er det, der testes. `unknownId` er inputtet, og `returnsFalse` er det forventede resultat. Navnet fortæller, hvad testen gør, og hvad den forventer.
 
 ## AI brug (Gon)
 
-Jeg brugte Copilot til backenden. Jeg bad om en plan udefra mit issue, og implementerede den. Derefter tjekkede jeg diffen og kørte `npm run check`, før jeg lavede PR. 
-
+Jeg brugte Copilot til backenden. Jeg bad om en plan ud fra mit issue og implementerede den. Derefter tjekkede jeg diffen og kørte `npm run check`, før jeg lavede PR.
 
 ## Wiring (Mat)
 
+**1. Hvad gør createApp, og hvorfor tager den repository ind udefra?**
 
-1. Hvad gør createApp, og hvorfor tager den repository ind udefra?
-createApp bygger Express-appen og kobler lagene sammen (repository → service → controller → routes). Repositoryet kommer udefra (dependency injection), så du kan bytte det ud med et falsk i tests eller skifte til en database uden at ændre app.js.
+`createApp` bygger Express appen og kobler lagene sammen (repository, service, controller, routes). Repositoryet kommer udefra (dependency injection), så man kan bytte det ud med en fake i tests eller skifte til en database uden at ændre `app.js`.
 
-2. Hvad gør server.js, og hvorfor bygges stien til tasks.json med path.join?
-server.js er indgangspunktet: det opretter det rigtige repository, sender det til createApp og starter serveren på port 3000. path.join med __dirname giver en korrekt sti på alle styresystemer, uanset hvorfra du starter node.
+**2. Hvad gør server.js, og hvorfor bygges stien til tasks.json med path.join?**
 
-3. Hvorfor er rækkefølgen express.json, express.static, routes under /api/tasks, notFound, errorHandler?
-Middleware kører i registreringsrækkefølge: json skal parse body før routes, static serverer filer før API’et, og routes skal komme før notFound, ellers ville gyldige ruter få 404. errorHandler står sidst, fordi den kun fanger fejl fra det, der er registreret før den.
+`server.js` er indgangspunktet. Det opretter det rigtige repository, sender det til `createApp` og starter serveren på port 3000. `path.join` med `__dirname` giver en korrekt sti på alle styresystemer, uanset hvorfra man starter `node`.
 
-4. Hvad er forskellen på notFound og errorHandler? Husk at notFound svarer selv med 404 og ikke sender videre med next. -->
-notFound bruges, når ingen rute matchede, og den svarer selv med 404 uden next. errorHandler har fire parametre (err, req, res, next) og håndterer fejl, der kastes eller sendes videre med next(err).
+**3. Hvorfor er rækkefølgen express.json, express.static, routes under /api/tasks, notFound, errorHandler?**
 
+Middleware kører i den rækkefølge, den er registreret. `express.json` skal parse body før routes, og routes skal stå før `notFound`, ellers ville gyldige ruter få 404. `errorHandler` står sidst, fordi den kun fanger fejl fra det, der er registreret før den.
+
+**4. Hvad er forskellen på notFound og errorHandler?**
+
+`notFound` bruges, når ingen route matcher, og den svarer selv med 404 uden at kalde `next`. `errorHandler` har fire parametre (`err, req, res, next`) og håndterer fejl, der kastes eller sendes videre med `next(err)`.
 
 ## Test (Mat)
 
+**1. Hvilke seks tests er der i api.test.js, og hvad dækker de?**
 
-1. Hvilke seks tests er der i api.test.js, og hvad dækker de?
-Testene er integrationstests af API’et. De starter appen og sender rigtige HTTP-requests til den, og så tjekker de svaret. Hver test følger Arrange-Act-Assert: først sætter man data op, så kalder man API’et, og til sidst tjekker man resultatet. Det kan man se på kommentarerne i filen.
+Det er integrationstests af API'et. De starter appen, sender rigtige HTTP requests med `fetch` og tjekker svaret. Hver test følger Arrange, Act, Assert. De seks tests er listet under punkt 4.
 
-2. Hvorfor bruger de en fake repository, så de ikke rører data/tasks.json?
-Appen er bygget med dependency injection. createApp laver ikke selv sit repository, men får det givet som parameter: createApp({ taskRepository }). I produktion er det et repository, der læser og skriver data/tasks.json. I testene giver vi den en fake i stedet, som blot gemmer opgaverne i en variabel i hukommelsen. Fake’en har de samme to metoder, readTasks og writeTasks, så appen opfører sig, som om den talte med det rigtige repository.
+**2. Hvorfor bruger de en fake repository, så de ikke rører data/tasks.json?**
 
-3. Hvorfor bruger vi app.listen(0), og hvorfor lukker vi serveren i t.after?
-For at sende rigtige HTTP-requests med fetch skal appen lytte på en port, og en hardcodet port som 3000 kan give konflikter, hvis den er optaget af fx din udviklingsserver eller af andre tests. Derfor bruger vi listen(0), så operativsystemet vælger en ledig port, som testen aflæser med server.address().port og bygger URL’en ud fra.
+`createApp` får sit repository som parameter: `createApp({ taskRepository })`. I produktion læser og skriver det `data/tasks.json`. I testene får den en fake, som gemmer opgaverne i en variabel i hukommelsen. Fake'en har de samme to metoder, `readTasks` og `writeTasks`, så appen opfører sig, som om den talte med det rigtige repository.
 
-t.after(() => server.close()) lukker serveren, når testen er færdig, uanset om den lykkedes eller fejlede, så porten og forbindelserne ikke bliver hængende. Ellers kan Node-processen blive ved med at køre efter testene, og der hober sig åbne servere op, så oprydning er en del af at skrive pålidelige tests.
+**3. Hvorfor bruger vi app.listen(0), og hvorfor lukker vi serveren i t.after?**
 
-4. Skriv kun om tests, du har set køre grønt. 
-getTasks_existingTasks_returns200AndList kalder GET /api/tasks. Den tjekker, at statuskoden er 200, og at listen er præcis den opgave, som den fake repository blev fyldt med.
-postTasks_withText_returns201AndNewTask sender en POST med teksten “Skriv tests”. Den forventer 201 Created og en ny opgave med et id som string, den rigtige tekst og done: false.
-postTasks_missingText_returns400 sender en POST med et tomt objekt og forventer 400 Bad Request. Det er en test af inputvalidering.
-deleteTask_existingId_returns204 sletter en opgave, der findes, og forventer 204 No Content, altså at det lykkedes uden noget at sende tilbage.
-deleteTask_unknownId_returns404 forsøger at slette et id, der ikke findes, og forventer 404 Not Found.
-getUnknownRoute_unmatchedPath_returns404 kalder en sti, der slet ikke er defineret i appen, og forventer 404. 
+For at bruge `fetch` skal appen lytte på en port. En fast port som 3000 kan give konflikt, hvis den er optaget. Med `listen(0)` vælger operativsystemet en ledig port, som testen aflæser med `server.address().port`. `t.after(() => server.close())` lukker serveren, når testen er færdig, så porten ikke bliver hængende, og testprocessen kan afslutte.
 
+**4. De seks tests**
 
+* `getTasks_existingTasks_returns200AndList` kalder GET `/api/tasks` og tjekker 200 og at listen er den opgave, fake'en blev fyldt med.
+* `postTasks_withText_returns201AndNewTask` sender en POST med teksten "Skriv tests" og forventer 201 og en ny opgave med id som string, den rigtige tekst og `done: false`.
+* `postTasks_missingText_returns400` sender en POST med et tomt objekt og forventer 400. Det er en test af inputvalidering.
+* `deleteTask_existingId_returns204` sletter en opgave, der findes, og forventer 204.
+* `deleteTask_unknownId_returns404` sletter et id, der ikke findes, og forventer 404.
+* `getUnknownRoute_unmatchedPath_returns404` kalder en sti, der ikke findes i appen, og forventer 404.
 
 ## AI brug (Mat)
 
-
-Jeg bad Copilot om at skrive tests for API’et. Jeg rettede dem, så de fulgte Arrange-Act-Assert, og tjekkede, at de kørte grønt.
-derudover fik jeg Copilot til at lave en plan for api.test.js og for app.js og server.js da jeg skulle lave wiring. 
-jeg tjekket diffen efter hver promt for at sikre mig, at jeg forstod, hvad der blev lavet, og at det var korrekt.
+Jeg bad Copilot om at skrive tests til API'et. Jeg rettede dem, så de fulgte Arrange, Act, Assert, og tjekkede, at de kørte grønt. Jeg fik også Copilot til at lave en plan for `api.test.js` og for `app.js` og `server.js`, da jeg lavede wiring. Jeg tjekkede diffen efter hver prompt for at sikre mig, at jeg forstod, hvad der blev lavet, og at det var korrekt.
 
 ## Refleksionsspørgsmål
 
