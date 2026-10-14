@@ -188,4 +188,6 @@ Hvis vi skulle lave serveren igen med halvt så mange filer og regler, ville vi 
 
 Vi har ikke sat en maksimal længde på opgavetekst. Det kunne vi gøre med en grænse i controlleren.
 
+Vi har ikke sat en maksimal længde på opgavetekst. Det kunne vi gøre med en grænse i controlleren.
+
 De ekstra API-tests, errorHandler-rettelsen, de kortere agentinstruktioner og Gons to ekstra svar om service laget og await er skrevet af Nicki.
