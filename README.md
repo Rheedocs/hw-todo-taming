@@ -186,4 +186,6 @@ Efter feedback på Node ninja rettede vi disse ting i To Do Taming, så vi ikke 
 
 Hvis vi skulle lave serveren igen med halvt så mange filer og regler, ville vi beholde service, repository og dependency injection, fordi de kan begrundes og testes. Vi ville fjerne `routes/`, `contracts.js` og de lange regelfiler.
 
+Vi har ikke sat en maksimal længde på opgavetekst. Det kunne vi gøre med en grænse i controlleren.
+
 De ekstra API-tests, errorHandler-rettelsen, de kortere agentinstruktioner og Gons to ekstra svar om service laget og await er skrevet af Nicki.
