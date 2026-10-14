@@ -28,12 +28,10 @@ npm start
 | `public/` | Frontend (HTML, JavaScript og CSS) |
 | `src/app.js` | Samler middleware og routes (`createApp`) |
 | `src/server.js` | Opretter repository og starter serveren på port 3000 |
-| `src/routes/` | Kobler URL og metode til controlleren |
 | `src/controllers/` | Læser request, tjekker input og vælger statuskode |
 | `src/services/` | Forretningslogik |
 | `src/repositories/` | Læser og skriver `data/tasks.json` |
 | `src/middleware/` | 404 og fejlhåndtering |
-| `src/contracts.js` | Aftalte typer mellem lagene |
 | `data/tasks.json` | Opgaverne |
 | `tests/` | Automatiske tests (api, repository og service) |
 
@@ -56,7 +54,7 @@ Efter wiring var merget testede jeg manuelt:
 * GET `/api/ukendt` giver 404 med `{ "error": "Ruten blev ikke fundet." }`.
 * POST `/api/tasks` med ugyldig JSON giver 400 med `{ "error": "Anmodningen indeholder ugyldig JSON." }`.
 
-De automatiske tests (18 stk.) kører med `npm run check`.
+De automatiske tests (19 stk.) kører med `npm run check`.
 
 ## AI brug (Nicki)
 
@@ -66,7 +64,7 @@ Jeg brugte Copilot til frontenden og til 404 og fejlhåndtering. Jeg bad om en p
 
 **1. Hvilke filer er kæden, og hvad gør hver af dem?**
 
-Kæden er route, controller, service og repository. Routen sender requesten videre til den rigtige controller funktion. Controlleren tjekker input og sender svaret. Servicen laver logikken, fx at give en ny opgave et id. Repositoryet læser og skriver i `tasks.json`.
+Kæden er controller, service og repository. De tre routes ligger i `app.js` og sender requesten videre til den rigtige controller funktion. Controlleren tjekker input og sender svaret. Servicen laver logikken, fx at give en ny opgave et id. Repositoryet læser og skriver i `tasks.json`.
 
 **2. Hvorfor bruger vi readJson og writeJson, og hvad er forskellen på dem og fs.promises?**
 
@@ -114,7 +112,7 @@ Jeg brugte Copilot til backenden. Jeg bad om en plan ud fra mit issue og impleme
 
 **1. Hvad gør createApp, og hvorfor tager den repository ind udefra?**
 
-`createApp` bygger Express appen og kobler lagene sammen (repository, service, controller, routes). Repositoryet kommer udefra (dependency injection), så man kan bytte det ud med en fake i tests eller skifte til en database uden at ændre `app.js`.
+`createApp` bygger Express appen og kobler lagene sammen (repository, service, controller) og registrerer de tre routes. Repositoryet kommer udefra (dependency injection), så man kan bytte det ud med en fake i tests eller skifte til en database uden at ændre `app.js`.
 
 **2. Hvad gør server.js, og hvorfor bygges stien til tasks.json med path.join?**
 
@@ -132,7 +130,7 @@ Middleware kører i den rækkefølge, den er registreret. `express.json` skal pa
 
 **1. Hvilke tests er der i api.test.js, og hvad dækker de?**
 
-Det er integrationstests af API'et. De starter appen, sender rigtige HTTP requests med `fetch` og tjekker svaret. Hver test følger Arrange, Act, Assert. De første seks tests er listet under punkt 4, og de fem nye står efter listen.
+Det er integrationstests af API'et. De starter appen, sender rigtige HTTP requests med `fetch` og tjekker svaret. Hver test følger Arrange, Act, Assert. De første seks tests er listet under punkt 4, og de seks nye står efter listen.
 
 **2. Hvorfor bruger de en fake repository, så de ikke rører data/tasks.json?**
 
@@ -151,7 +149,7 @@ For at bruge `fetch` skal appen lytte på en port. En fast port som 3000 kan giv
 * `deleteTask_unknownId_returns404` sletter et id, der ikke findes, og forventer 404.
 * `getUnknownRoute_unmatchedPath_returns404` kalder en sti, der ikke findes i appen, og forventer 404.
 
-Efter feedback er der kommet fem tests til: `postTasks_thenGetTasks_returnsNewTask` (POST og så GET), `postTasks_emptyText_returns400`, `postTasks_onlySpaces_returns400`, `postTasks_invalidJson_returns400` (tjekker også den danske fejltekst) og `postTasks_writeFails_returns500` (fake repository hvor `writeTasks` kaster).
+Efter feedback er der kommet seks tests til: `postTasks_thenGetTasks_returnsNewTask` (POST og så GET), `postTasks_emptyText_returns400`, `postTasks_onlySpaces_returns400`, `postTasks_invalidJson_returns400` (tjekker også den danske fejltekst), `postTasks_writeFails_returns500` (fake repository hvor `writeTasks` kaster) og `postTasks_textTooLong_returns400` (tekst over 200 tegn).
 
 ## AI brug (Mat)
 
@@ -184,8 +182,8 @@ Efter feedback på Node ninja rettede vi disse ting i To Do Taming, så vi ikke 
 * Vi udvidede API-testene med et helt forløb (POST og så GET), ugyldig JSON, tom tekst, kun mellemrum og fejl ved skrivning.
 * Servicen har rigtig logik (id, `done: false`, finde og slette), så laget kan begrundes.
 
-Hvis vi skulle lave serveren igen med halvt så mange filer og regler, ville vi beholde service, repository og dependency injection, fordi de kan begrundes og testes. Vi ville fjerne `routes/`, `contracts.js` og de lange regelfiler.
+Efter Mikkels spørgsmål om halvt så mange filer og regler beholdt vi service, repository og dependency injection, fordi de kan begrundes og testes. Vi fjernede `routes/`, `contracts.js` og lag reglerne i ESLint, og samlede controller og service i deres factory funktioner. Derfor er `max-lines-per-function` hævet fra 25 til 40.
 
-Vi har ikke sat en maksimal længde på opgavetekst. Det kunne vi gøre med en grænse i controlleren.
+Opgavetekst har nu en maksimal længde på 200 tegn. Længere tekst giver 400 med en fast dansk besked.
 
-De ekstra API-tests, errorHandler-rettelsen, de kortere agentinstruktioner og Gons to ekstra svar om service laget og await er skrevet af Nicki.
+De ekstra API-tests, errorHandler-rettelsen, de kortere agentinstruktioner, forenklingen af strukturen, længdegrænsen og Gons to ekstra svar om service laget og await er skrevet af Nicki.
