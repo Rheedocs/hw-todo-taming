@@ -4,7 +4,7 @@
  * @param {import('express').Request} req Express-anmodningen.
  * @param {import('express').Response} res Express-svaret.
  */
-function errorHandler(err, req, res) {
+function errorHandler(err, req, res, next) {
     const isInvalidJson = err?.type === 'entity.parse.failed';
     const statusCode = isInvalidJson ? 400 : 500;
     const message = isInvalidJson
@@ -13,7 +13,5 @@ function errorHandler(err, req, res) {
 
     res.status(statusCode).json({ error: message });
 }
-
-Object.defineProperty(errorHandler, 'length', { value: 4 });
 
 module.exports = { errorHandler };
