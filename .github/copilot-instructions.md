@@ -1,1 +1,1 @@
-﻿Read and follow AGENTS.md in the project root.
+Read and follow AGENTS.md in the project root.
