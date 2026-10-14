@@ -56,7 +56,7 @@ Efter wiring var merget testede jeg manuelt:
 * GET `/api/ukendt` giver 404 med `{ "error": "Ruten blev ikke fundet." }`.
 * POST `/api/tasks` med ugyldig JSON giver 400 med `{ "error": "Anmodningen indeholder ugyldig JSON." }`.
 
-De automatiske tests (13 stk.) kører med `npm run check`.
+De automatiske tests (18 stk.) kører med `npm run check`.
 
 ## AI brug (Nicki)
 
