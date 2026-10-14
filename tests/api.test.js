@@ -13,8 +13,8 @@ function createFakeRepository(initialTasks = []) {
     };
 }
 
-function startTestServer(t, initialTasks = []) {
-    const app = createApp({ taskRepository: createFakeRepository(initialTasks) });
+function startTestServer(t, initialTasks = [], taskRepository = createFakeRepository(initialTasks)) {
+    const app = createApp({ taskRepository });
     const server = app.listen(0);
     t.after(() => server.close());
     return `http://localhost:${server.address().port}`;
@@ -53,6 +53,26 @@ test('postTasks_withText_returns201AndNewTask', async (t) => {
     assert.equal(task.done, false);
 });
 
+test('postTasks_thenGetTasks_returnsNewTask', async (t) => {
+    // Arrange
+    const baseUrl = startTestServer(t);
+
+    // Act
+    const postResponse = await fetch(`${baseUrl}/api/tasks`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text: 'Skriv tests' }),
+    });
+    const newTask = await postResponse.json();
+    const getResponse = await fetch(`${baseUrl}/api/tasks`);
+    const tasks = await getResponse.json();
+
+    // Assert
+    assert.equal(postResponse.status, 201);
+    assert.equal(getResponse.status, 200);
+    assert.deepEqual(tasks, [newTask]);
+});
+
 test('postTasks_missingText_returns400', async (t) => {
     // Arrange
     const baseUrl = startTestServer(t);
@@ -66,6 +86,72 @@ test('postTasks_missingText_returns400', async (t) => {
 
     // Assert
     assert.equal(response.status, 400);
+});
+
+test('postTasks_emptyText_returns400', async (t) => {
+    // Arrange
+    const baseUrl = startTestServer(t);
+
+    // Act
+    const response = await fetch(`${baseUrl}/api/tasks`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text: '' }),
+    });
+
+    // Assert
+    assert.equal(response.status, 400);
+});
+
+test('postTasks_onlySpaces_returns400', async (t) => {
+    // Arrange
+    const baseUrl = startTestServer(t);
+
+    // Act
+    const response = await fetch(`${baseUrl}/api/tasks`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text: '   ' }),
+    });
+
+    // Assert
+    assert.equal(response.status, 400);
+});
+
+test('postTasks_invalidJson_returns400', async (t) => {
+    // Arrange
+    const baseUrl = startTestServer(t);
+
+    // Act
+    const response = await fetch(`${baseUrl}/api/tasks`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: '{ikke json',
+    });
+    const result = await response.json();
+
+    // Assert
+    assert.equal(response.status, 400);
+    assert.deepEqual(result, { error: 'Anmodningen indeholder ugyldig JSON.' });
+});
+
+test('postTasks_writeFails_returns500', async (t) => {
+    // Arrange
+    const taskRepository = createFakeRepository();
+    taskRepository.writeTasks = async () => {
+        throw new Error('Write failed');
+    };
+    const baseUrl = startTestServer(t, [], taskRepository);
+
+    // Act
+    const response = await fetch(`${baseUrl}/api/tasks`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text: 'Skriv tests' }),
+    });
+
+    // Assert
+    assert.equal(response.status, 500);
 });
 
 test('deleteTask_existingId_returns204', async (t) => {
