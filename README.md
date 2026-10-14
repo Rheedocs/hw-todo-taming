@@ -25,7 +25,7 @@ npm start
 
 | Mappe eller fil | Ansvar |
 |---|---|
-| `public/` | Frontend (HTML, JavaScript og CSS) |
+| `public/` | Frontend (HTML og JavaScript, Bootstrap fra CDN) |
 | `src/app.js` | Samler middleware og routes (`createApp`) |
 | `src/server.js` | Opretter repository og starter serveren på port 3000 |
 | `src/controllers/` | Læser request, tjekker input og vælger statuskode |
@@ -180,10 +180,11 @@ Efter feedback på Node ninja rettede vi disse ting i To Do Taming, så vi ikke 
 * `errorHandler` har de fire almindelige parametre, og vi justerede ESLint i stedet for at ændre funktionens `length`.
 * Agentinstruktionerne er forkortet fra ca. 12000 til ca. 2700 tegn, og reglerne, der tvang agenten til at omgå ESLint, er fjernet.
 * Vi udvidede API-testene med et helt forløb (POST og så GET), ugyldig JSON, tom tekst, kun mellemrum og fejl ved skrivning.
+* Vi stylede frontenden med Bootstrap fra CDN og lavede et lyst og et mørkt tema.
 * Servicen har rigtig logik (id, `done: false`, finde og slette), så laget kan begrundes.
 
 Efter Mikkels spørgsmål om halvt så mange filer og regler beholdt vi service, repository og dependency injection, fordi de kan begrundes og testes. Vi fjernede `routes/`, `contracts.js` og lag reglerne i ESLint, og samlede controller og service i deres factory funktioner. Derfor er `max-lines-per-function` hævet fra 25 til 40.
 
 Opgavetekst har nu en maksimal længde på 200 tegn. Længere tekst giver 400 med en fast dansk besked.
 
-De ekstra API-tests, errorHandler-rettelsen, de kortere agentinstruktioner, forenklingen af strukturen, længdegrænsen og Gons to ekstra svar om service laget og await er skrevet af Nicki.
+De ekstra API-tests, errorHandler-rettelsen, de kortere agentinstruktioner, forenklingen af strukturen, længdegrænsen, Bootstrap stylingen og Gons to ekstra svar om service laget og await er skrevet af Nicki.
