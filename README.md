@@ -122,9 +122,9 @@ Middleware kører i den rækkefølge, den er registreret. `express.json` skal pa
 
 ## Test (Mat)
 
-**1. Hvilke seks tests er der i api.test.js, og hvad dækker de?**
+**1. Hvilke tests er der i api.test.js, og hvad dækker de?**
 
-Det er integrationstests af API'et. De starter appen, sender rigtige HTTP requests med `fetch` og tjekker svaret. Hver test følger Arrange, Act, Assert. De seks tests er listet under punkt 4.
+Det er integrationstests af API'et. De starter appen, sender rigtige HTTP requests med `fetch` og tjekker svaret. Hver test følger Arrange, Act, Assert. De første seks tests er listet under punkt 4, og de fem nye står efter listen.
 
 **2. Hvorfor bruger de en fake repository, så de ikke rører data/tasks.json?**
 
@@ -134,7 +134,7 @@ Det er integrationstests af API'et. De starter appen, sender rigtige HTTP reques
 
 For at bruge `fetch` skal appen lytte på en port. En fast port som 3000 kan give konflikt, hvis den er optaget. Med `listen(0)` vælger operativsystemet en ledig port, som testen aflæser med `server.address().port`. `t.after(() => server.close())` lukker serveren, når testen er færdig, så porten ikke bliver hængende, og testprocessen kan afslutte.
 
-**4. De seks tests**
+**4. De tests**
 
 * `getTasks_existingTasks_returns200AndList` kalder GET `/api/tasks` og tjekker 200 og at listen er den opgave, fake'en blev fyldt med.
 * `postTasks_withText_returns201AndNewTask` sender en POST med teksten "Skriv tests" og forventer 201 og en ny opgave med id som string, den rigtige tekst og `done: false`.
@@ -142,6 +142,8 @@ For at bruge `fetch` skal appen lytte på en port. En fast port som 3000 kan giv
 * `deleteTask_existingId_returns204` sletter en opgave, der findes, og forventer 204.
 * `deleteTask_unknownId_returns404` sletter et id, der ikke findes, og forventer 404.
 * `getUnknownRoute_unmatchedPath_returns404` kalder en sti, der ikke findes i appen, og forventer 404.
+
+Efter feedback er der kommet fem tests til: `postTasks_thenGetTasks_returnsNewTask` (POST og så GET), `postTasks_emptyText_returns400`, `postTasks_onlySpaces_returns400`, `postTasks_invalidJson_returns400` (tjekker også den danske fejltekst) og `postTasks_writeFails_returns500` (fake repository hvor `writeTasks` kaster).
 
 ## AI brug (Mat)
 
@@ -171,6 +173,9 @@ Efter feedback på Node ninja rettede vi disse ting i To Do Taming, så vi ikke 
 
 * `errorHandler` har de fire almindelige parametre, og vi justerede ESLint i stedet for at ændre funktionens `length`.
 * Agentinstruktionerne er forkortet fra ca. 12000 til ca. 2700 tegn, og reglerne, der tvang agenten til at omgå ESLint, er fjernet.
+* Vi udvidede API-testene med et helt forløb (POST og så GET), ugyldig JSON, tom tekst, kun mellemrum og fejl ved skrivning.
 * Servicen har rigtig logik (id, `done: false`, finde og slette), så laget kan begrundes.
 
 Hvis vi skulle lave serveren igen med halvt så mange filer og regler, ville vi beholde service, repository og dependency injection, fordi de kan begrundes og testes. Vi ville fjerne `routes/`, `contracts.js` og de lange regelfiler.
+
+De ekstra API-tests, errorHandler-rettelsen og de kortere agentinstruktioner er lavet af Nicki.
