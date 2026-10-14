@@ -84,6 +84,14 @@ Kæden er route, controller, service og repository. Routen sender requesten vide
 
 Det er forretningsregler om en ny opgave. Controlleren skal kun håndtere HTTP.
 
+**6. Hvorfor har vi et service lag?**
+
+Servicen har rigtig logik: den laver id med `crypto.randomUUID()`, sætter `done: false` og finder og sletter en opgave. Controlleren kender kun HTTP, og repository kender kun filen, så servicen er stedet for reglerne om en opgave. Den gør også, at logikken kan testes med en fake repository.
+
+**7. Hvad gør await?**
+
+JavaScript kører på én event loop tråd. Når koden rammer `await`, pauser den funktion, der venter, men ikke hele serveren. Selve læsningen af filen sker uden for JavaScript tråden, så event loopet kan tage andre requests imens. Når filen er læst, fortsætter funktionen, hvor den slap.
+
 ## Test (Gon)
 
 **1. Hvad tester repository testene, og hvorfor bruger de en midlertidig fil?**
@@ -178,4 +186,4 @@ Efter feedback på Node ninja rettede vi disse ting i To Do Taming, så vi ikke 
 
 Hvis vi skulle lave serveren igen med halvt så mange filer og regler, ville vi beholde service, repository og dependency injection, fordi de kan begrundes og testes. Vi ville fjerne `routes/`, `contracts.js` og de lange regelfiler.
 
-De ekstra API-tests, errorHandler-rettelsen og de kortere agentinstruktioner er lavet af Nicki.
+De ekstra API-tests, errorHandler-rettelsen, de kortere agentinstruktioner og Gons to ekstra svar om service laget og await er skrevet af Nicki.
