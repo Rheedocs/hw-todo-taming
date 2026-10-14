@@ -2,6 +2,7 @@ const taskForm = document.querySelector('#task-form');
 const taskInput = document.querySelector('#task-input');
 const taskList = document.querySelector('#task-list');
 const errorMessage = document.querySelector('#error-message');
+const themeToggle = document.querySelector('#theme-toggle');
 
 function showError(message) {
   errorMessage.textContent = message;
@@ -34,8 +35,10 @@ function renderTasks(tasks) {
     const text = document.createElement('span');
     const button = document.createElement('button');
 
+    item.className = 'list-group-item d-flex justify-content-between align-items-center';
     text.textContent = task.text;
     button.type = 'button';
+    button.className = 'btn btn-outline-danger btn-sm';
     button.textContent = 'Slet';
     button.setAttribute('aria-label', `Slet ${task.text}`);
     button.addEventListener('click', () => deleteTask(task.id));
@@ -88,6 +91,13 @@ async function deleteTask(id) {
 taskForm.addEventListener('submit', (event) => {
   event.preventDefault();
   addTask();
+});
+
+themeToggle.addEventListener('click', () => {
+  const currentTheme = document.documentElement.getAttribute('data-bs-theme');
+  const nextTheme = currentTheme === 'light' ? 'dark' : 'light';
+  document.documentElement.setAttribute('data-bs-theme', nextTheme);
+  themeToggle.textContent = nextTheme === 'light' ? 'Mørkt tema' : 'Lyst tema';
 });
 
 loadTasks();
