@@ -2,7 +2,7 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const { createApp } = require('../src/app');
 
-//Fake Repository for at køre testen
+// Fake repository for API tests.
 function createFakeRepository(initialTasks = []) {
     let tasks = [...initialTasks];
     return {
@@ -152,6 +152,23 @@ test('postTasks_writeFails_returns500', async (t) => {
 
     // Assert
     assert.equal(response.status, 500);
+});
+
+test('postTasks_textTooLong_returns400', async (t) => {
+    // Arrange
+    const baseUrl = startTestServer(t);
+
+    // Act
+    const response = await fetch(`${baseUrl}/api/tasks`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text: 'a'.repeat(201) }),
+    });
+    const result = await response.json();
+
+    // Assert
+    assert.equal(response.status, 400);
+    assert.deepEqual(result, { error: 'Opgavens tekst må højst være 200 tegn.' });
 });
 
 test('deleteTask_existingId_returns204', async (t) => {

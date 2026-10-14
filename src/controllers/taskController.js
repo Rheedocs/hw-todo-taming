@@ -1,51 +1,46 @@
+const MAX_TEXT_LENGTH = 200;
+
 /**
  * Creates HTTP handlers for task operations.
- * @param {import('../contracts').TaskService} taskService
+ * @param {{ getAllTasks: () => Promise<object[]>, addTask: (text: string) => Promise<object>, deleteTask: (id: string) => Promise<boolean> }} taskService
  */
 function createTaskController(taskService) {
-    return {
-        handleGetTasks: (req, res) => handleGetTasks(taskService, req, res),
-        handleAddTask: (req, res) => handleAddTask(taskService, req, res),
-        handleDeleteTask: (req, res) => handleDeleteTask(taskService, req, res),
-    };
-}
-
-async function handleGetTasks(taskService, req, res) {
-    try {
-        const tasks = await taskService.getAllTasks();
-        return res.status(200).json(tasks);
-    } catch {
-        return sendServerError(res, 'Kunne ikke hente opgaverne.');
-    }
-}
-
-async function handleAddTask(taskService, req, res) {
-    const text = req.body?.text;
-    if (typeof text !== 'string' || text.trim() === '') {
-        return res.status(400).json({ error: 'Opgavens tekst må ikke være tom.' });
-    }
-    try {
-        const task = await taskService.addTask(text);
-        return res.status(201).json(task);
-    } catch {
-        return sendServerError(res, 'Kunne ikke gemme opgaven.');
-    }
-}
-
-async function handleDeleteTask(taskService, req, res) {
-    try {
-        const deleted = await taskService.deleteTask(req.params.id);
-        if (!deleted) {
-            return res.status(404).json({ error: 'Opgaven blev ikke fundet.' });
+    const handleGetTasks = async (req, res) => {
+        try {
+            return res.status(200).json(await taskService.getAllTasks());
+        } catch {
+            return res.status(500).json({ error: 'Kunne ikke hente opgaverne.' });
         }
-        return res.status(204).end();
-    } catch {
-        return sendServerError(res, 'Kunne ikke slette opgaven.');
-    }
-}
+    };
 
-function sendServerError(res, message) {
-    return res.status(500).json({ error: message });
+    const handleAddTask = async (req, res) => {
+        const text = req.body?.text;
+        if (typeof text !== 'string' || text.trim() === '') {
+            return res.status(400).json({ error: 'Opgavens tekst må ikke være tom.' });
+        }
+        if (text.length > MAX_TEXT_LENGTH) {
+            return res.status(400).json({ error: 'Opgavens tekst må højst være 200 tegn.' });
+        }
+        try {
+            return res.status(201).json(await taskService.addTask(text));
+        } catch {
+            return res.status(500).json({ error: 'Kunne ikke gemme opgaven.' });
+        }
+    };
+
+    const handleDeleteTask = async (req, res) => {
+        try {
+            const deleted = await taskService.deleteTask(req.params.id);
+            if (!deleted) {
+                return res.status(404).json({ error: 'Opgaven blev ikke fundet.' });
+            }
+            return res.status(204).end();
+        } catch {
+            return res.status(500).json({ error: 'Kunne ikke slette opgaven.' });
+        }
+    };
+
+    return { handleGetTasks, handleAddTask, handleDeleteTask };
 }
 
 module.exports = { createTaskController };

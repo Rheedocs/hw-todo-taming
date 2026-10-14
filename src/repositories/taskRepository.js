@@ -3,7 +3,7 @@ const fs = require('fs-extra');
 /**
  * Creates file access methods for the task list.
  * @param {string} filePath Path to the JSON file.
- * @returns {import('../contracts').TaskRepository}
+ * @returns {{ readTasks: () => Promise<object[]>, writeTasks: (tasks: object[]) => Promise<void> }}
  */
 function createTaskRepository(filePath) {
     return {

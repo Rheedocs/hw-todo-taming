@@ -42,7 +42,7 @@ Write the test before the code.
 3. Refactor without breaking the test (refactor). Clean names, small functions, no duplication. Run `npm run check` afterwards.
 
 ## Fakes
-Used when the code depends on the file system or another team member's part. Replace the dependency with a small fake that has the same functions as the matching type in `src/contracts.js`.
+Used when the code depends on the file system or another part of the app. Replace the dependency with a small fake that has the same methods as the real repository.
 
 ```js
 function createFakeRepository(initialTasks = []) {
@@ -144,10 +144,10 @@ test('readTasks_fileMissing_throws', async () => {
 ## Rules of thumb
 
 1. One behaviour per test. If it fails, you should know exactly what went wrong.
-2. Test the limits. `text` missing, `text` is a number, empty text, only spaces, broken JSON.
+2. Test the limits. `text` missing, `text` is a number, empty text, only spaces, text longer than 200 characters, and broken JSON.
 3. Test error cases. File missing, write fails, unknown id (404), unknown route (404).
 4. Fake the dependencies. Anything using the file system is replaced in tests, except the repository test above.
 5. No logic in tests. No if, no loops. Tests should be dumb and direct.
 6. Test behaviour, not implementation. Test what the code does, not how.
 7. Tests never read or write `data/tasks.json`.
-8. The frontend is tested by hand, see the manual test table in `AGENTS.md`.
+8. Frontend behavior is outside these automated API, service, and repository tests.
