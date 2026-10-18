@@ -78,15 +78,11 @@ Kæden er controller, service og repository. De tre routes ligger i `app.js` og 
 
 `readJson` kaster en fejl i repositoryet. Fejlen bobler op til controllerens `try/catch`, som fanger den og svarer 500 med en fast fejlbesked.
 
-**5. Hvorfor ligger id og done: false i servicen og ikke i controlleren?**
-
-Det er forretningsregler om en ny opgave. Controlleren skal kun håndtere HTTP.
-
-**6. Hvorfor har vi et service lag?**
+**5. Hvorfor ligger id og done: false i servicen, og hvorfor har vi et service lag?**
 
 Servicen har rigtig logik: den laver id med `crypto.randomUUID()`, sætter `done: false` og finder og sletter en opgave. Controlleren kender kun HTTP, og repository kender kun filen, så servicen er stedet for reglerne om en opgave. Den gør også, at logikken kan testes med en fake repository.
 
-**7. Hvad gør await?**
+**6. Hvad gør await?**
 
 JavaScript kører på én event loop tråd. Når koden rammer `await`, pauser den funktion, der venter, men ikke hele serveren. Selve læsningen af filen sker uden for JavaScript tråden, så event loopet kan tage andre requests imens. Når filen er læst, fortsætter funktionen, hvor den slap.
 
@@ -134,7 +130,7 @@ Det er integrationstests af API'et. De starter appen, sender rigtige HTTP reques
 
 **2. Hvorfor bruger de en fake repository, så de ikke rører data/tasks.json?**
 
-`createApp` får sit repository som parameter: `createApp({ taskRepository })`. I produktion læser og skriver det `data/tasks.json`. I testene får den en fake, som gemmer opgaverne i en variabel i hukommelsen. Fake'en har de samme to metoder, `readTasks` og `writeTasks`, så appen opfører sig, som om den talte med det rigtige repository.
+Som under Wiring får `createApp` sit repository udefra. I testene giver vi den en fake, der gemmer opgaverne i hukommelsen og har de samme to metoder, `readTasks` og `writeTasks`. Så rører testene ikke `data/tasks.json`.
 
 **3. Hvorfor bruger vi app.listen(0), og hvorfor lukker vi serveren i t.after?**
 
@@ -179,9 +175,8 @@ Efter feedback på Node ninja rettede vi disse ting i To Do Taming, så vi ikke 
 
 * `errorHandler` har de fire almindelige parametre, og vi justerede ESLint i stedet for at ændre funktionens `length`.
 * Agentinstruktionerne er forkortet fra ca. 12000 til ca. 2700 tegn, og reglerne, der tvang agenten til at omgå ESLint, er fjernet.
-* Vi udvidede API-testene med et helt forløb (POST og så GET), ugyldig JSON, tom tekst, kun mellemrum og fejl ved skrivning.
+* Vi lavede flere API-tests (se Test (Mat)).
 * Vi stylede frontenden med Bootstrap fra CDN og lavede et lyst og et mørkt tema.
-* Servicen har rigtig logik (id, `done: false`, finde og slette), så laget kan begrundes.
 
 Efter Mikkels spørgsmål om halvt så mange filer og regler beholdt vi service, repository og dependency injection, fordi de kan begrundes og testes. Vi fjernede `routes/`, `contracts.js` og lag reglerne i ESLint, og samlede controller og service i deres factory funktioner. Derfor er `max-lines-per-function` hævet fra 25 til 40.
 
