@@ -174,7 +174,7 @@ Begge kan læse den samme liste, før nogen har gemt. Så tilføjer hver sin opg
 Efter feedback på Node ninja rettede vi disse ting i To Do Taming, så vi ikke gentager dem:
 
 * `errorHandler` har de fire almindelige parametre, og vi justerede ESLint i stedet for at ændre funktionens `length`.
-* Agentinstruktionerne er forkortet fra ca. 12000 til ca. 2700 tegn, og reglerne, der tvang agenten til at omgå ESLint, er fjernet.
+* Agentinstruktionerne er forkortet fra ca. 12000 til ca. 3000 tegn, og reglerne, der tvang agenten til at omgå ESLint, er fjernet.
 * Vi lavede flere API-tests (se Test (Mat)).
 * Vi stylede frontenden med Bootstrap fra CDN og lavede et lyst og et mørkt tema.
 
