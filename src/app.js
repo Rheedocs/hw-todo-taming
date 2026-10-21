@@ -21,6 +21,7 @@ function createApp({ taskRepository }) {
     router.get('/', taskController.handleGetTasks);
     router.post('/', taskController.handleAddTask);
     router.delete('/:id', taskController.handleDeleteTask);
+    router.patch('/:id', taskController.handleSetDone);
     app.use('/api/tasks', router);
     app.use(notFound);
     app.use(errorHandler);

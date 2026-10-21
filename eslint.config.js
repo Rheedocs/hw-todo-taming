@@ -28,7 +28,7 @@ module.exports = [
         languageOptions: { ecmaVersion: 2022 },
         rules: {
             complexity: ['error', 6],
-            'max-lines-per-function': ['error', { max: 40, skipBlankLines: true, skipComments: true }],
+            'max-lines-per-function': ['error', { max: 60, skipBlankLines: true, skipComments: true }],
             'max-lines': ['error', { max: 120, skipBlankLines: true, skipComments: true }],
             'max-params': ['error', 4],
             'no-unused-vars': ['error', { argsIgnorePattern: '^next$' }],

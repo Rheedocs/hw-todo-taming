@@ -2,7 +2,7 @@
 
 ## Hvad laver programmet?
 
-En fullstack app til opgaver (en "Taskmaster"). Backenden er en Express server, der gemmer opgaverne i en JSON fil uden database. Frontenden er en HTML side, der bruger `fetch` til at vise, tilføje og slette opgaver.
+En fullstack app til opgaver (en "Taskmaster"). Backenden er en Express server, der gemmer opgaverne i en JSON fil uden database. Frontenden er en HTML side, der bruger `fetch` til at vise, tilføje, afkrydse og slette opgaver.
 
 ## Kom i gang
 
@@ -20,6 +20,7 @@ npm start
 | GET | `/api/tasks` | Henter alle opgaver |
 | POST | `/api/tasks` | Tilføjer en opgave (`{ "text": "..." }`) |
 | DELETE | `/api/tasks/:id` | Sletter opgaven med id'et |
+| PATCH | `/api/tasks/:id` | Ændrer status på opgaven (`{ "done": true }`) |
 
 ## Struktur
 
@@ -29,7 +30,7 @@ npm start
 | `src/app.js` | Samler middleware og routes (`createApp`) |
 | `src/server.js` | Opretter repository og starter serveren på port 3000 |
 | `src/controllers/` | Læser request, tjekker input og vælger statuskode |
-| `src/services/` | Forretningslogik |
+| `src/services/` | Forretningslogik og kø, så ændringer sker én ad gangen |
 | `src/repositories/` | Læser og skriver `data/tasks.json` |
 | `src/middleware/` | 404 og fejlhåndtering |
 | `data/tasks.json` | Opgaverne |
@@ -39,9 +40,11 @@ Flere regler står i [AGENTS.md](AGENTS.md) og test reglerne i [docs/unit-test-g
 
 ## Frontend (Nicki)
 
-Siden henter opgaver fra `/api/tasks` med `fetch`. Tilføj sender POST, slet sender DELETE, og listen hentes igen bagefter. Tekst sættes ind med `textContent` og ikke `innerHTML`, så HTML i en opgave ikke kan køre som kode (XSS). DELETE svarer 204 uden body, så der kaldes ikke `response.json()`. Ved fejl tjekkes `response.ok`, og en fejlbesked vises på siden.
+Siden henter opgaver fra `/api/tasks` med `fetch`. Tilføj sender POST, slet sender DELETE, og et afkrydsningsfelt sender PATCH med `{ done }`. Listen hentes igen bagefter, og færdige opgaver er streget over. Tekst sættes ind med `textContent` og ikke `innerHTML`, så HTML i en opgave ikke kan køre som kode (XSS). DELETE svarer 204 uden body, så der kaldes ikke `response.json()`. Ved fejl tjekkes `response.ok`, og en fejlbesked vises på siden.
 
 ## Fejlhåndtering og 404 (Nicki)
+
+Når noget går galt i controlleren, bruger vi `catch (error)` og skriver fejlen med `console.error` på serveren, med hvad vi prøvede at gøre. Brugeren får stadig kun en fast dansk besked, så udvikleren kan se den rigtige fejl i terminalen uden at brugeren får den at se.
 
 `notFound` svarer 404, når ingen route matcher. `errorHandler` svarer 400 ved ugyldig JSON (`err.type === 'entity.parse.failed'`) og 500 ved alt andet. Beskeden er altid en fast dansk tekst, aldrig `err.message` eller stack trace. `errorHandler` har de fire almindelige parametre (`err, req, res, next`), som Express kræver for en fejlmiddleware, og `max-params` i ESLint er sat til 4, så det er tilladt.
 
@@ -54,7 +57,7 @@ Efter wiring var merget testede jeg manuelt:
 * GET `/api/ukendt` giver 404 med `{ "error": "Ruten blev ikke fundet." }`.
 * POST `/api/tasks` med ugyldig JSON giver 400 med `{ "error": "Anmodningen indeholder ugyldig JSON." }`.
 
-De automatiske tests (19 stk.) kører med `npm run check`.
+De automatiske tests (27 stk.) kører med `npm run check`.
 
 ## AI brug (Nicki)
 
@@ -72,7 +75,7 @@ Kæden er controller, service og repository. De tre routes ligger i `app.js` og 
 
 **3. Hvilke statuskoder svarer controlleren med, og hvornår?**
 
-200 ved hent og 201, når en opgave er oprettet. 204, når en opgave er slettet. 400, hvis teksten er tom, og 404, hvis opgaven ikke findes. Fejl i servicen eller filen giver 500.
+200 ved hent og ved ændring af status, og 201, når en opgave er oprettet. 204, når en opgave er slettet. 400, hvis teksten er tom eller `done` ikke er sand eller falsk, og 404, hvis opgaven ikke findes. Fejl i servicen eller filen giver 500.
 
 **4. Hvad sker der, hvis tasks.json er ødelagt?**
 
@@ -80,7 +83,7 @@ Kæden er controller, service og repository. De tre routes ligger i `app.js` og 
 
 **5. Hvorfor ligger id og done: false i servicen, og hvorfor har vi et service lag?**
 
-Servicen har rigtig logik: den laver id med `crypto.randomUUID()`, sætter `done: false` og finder og sletter en opgave. Controlleren kender kun HTTP, og repository kender kun filen, så servicen er stedet for reglerne om en opgave. Den gør også, at logikken kan testes med en fake repository.
+Servicen har rigtig logik: den laver id med `crypto.randomUUID()`, sætter `done: false`, finder og sletter en opgave, ændrer `done` og sørger for, at ændringer sker én ad gangen (køen). Controlleren kender kun HTTP, og repository kender kun filen, så servicen er stedet for reglerne om en opgave. Den gør også, at logikken kan testes med en fake repository.
 
 **6. Hvad gør await?**
 
@@ -126,7 +129,7 @@ Middleware kører i den rækkefølge, den er registreret. `express.json` skal pa
 
 **1. Hvilke tests er der i api.test.js, og hvad dækker de?**
 
-Det er integrationstests af API'et. De starter appen, sender rigtige HTTP requests med `fetch` og tjekker svaret. Hver test følger Arrange, Act, Assert. De første seks tests er listet under punkt 4, og de seks nye står efter listen.
+Det er integrationstests af API'et. De starter appen, sender rigtige HTTP requests med `fetch` og tjekker svaret. Hver test følger Arrange, Act, Assert. De første seks tests er listet under punkt 4, og de elleve nye står efter listen.
 
 **2. Hvorfor bruger de en fake repository, så de ikke rører data/tasks.json?**
 
@@ -145,7 +148,9 @@ For at bruge `fetch` skal appen lytte på en port. En fast port som 3000 kan giv
 * `deleteTask_unknownId_returns404` sletter et id, der ikke findes, og forventer 404.
 * `getUnknownRoute_unmatchedPath_returns404` kalder en sti, der ikke findes i appen, og forventer 404.
 
-Efter feedback er der kommet seks tests til: `postTasks_thenGetTasks_returnsNewTask` (POST og så GET), `postTasks_emptyText_returns400`, `postTasks_onlySpaces_returns400`, `postTasks_invalidJson_returns400` (tjekker også den danske fejltekst), `postTasks_writeFails_returns500` (fake repository hvor `writeTasks` kaster) og `postTasks_textTooLong_returns400` (tekst over 200 tegn).
+Efter feedback er der kommet seks tests til, og efter Mikkels anden feedback fem mere (se nedenfor). De seks: `postTasks_thenGetTasks_returnsNewTask` (POST og så GET), `postTasks_emptyText_returns400`, `postTasks_onlySpaces_returns400`, `postTasks_invalidJson_returns400` (tjekker også den danske fejltekst), `postTasks_writeFails_returns500` (fake repository hvor `writeTasks` kaster) og `postTasks_textTooLong_returns400` (tekst over 200 tegn).
+
+Efter Mikkels anden feedback: `postTasks_textWithSurroundingSpaces_returnsTrimmedText` (serveren gemmer den trimmede tekst), `postTasks_tenConcurrentRequests_savesAllTasks` (ti POST'er på samme tid, og alle ti skal gemmes), `patchTask_doneTrue_returns200AndUpdatedTask`, `patchTask_unknownId_returns404` og `patchTask_doneNotBoolean_returns400`. `postTasks_writeFails_returns500` tjekker nu også, at fejlen bliver logget. Samtidighedstesten bruger en langsom fake repository (5 ms pr. læsning og skrivning), så requests når at overlappe. Uden køen i servicen gemte testen kun 2 af 10 opgaver, med køen gemmer den alle 10.
 
 ## AI brug (Mat)
 
@@ -163,11 +168,17 @@ Nu læser og skriver vi hele filen, også når vi kun tilføjer én opgave. En d
 
 ### 3. Hvad sker der, hvis to brugere tilføjer på samme tid?
 
-Begge kan læse den samme liste, før nogen har gemt. Så tilføjer hver sin opgave til sin egen kopi, og den der gemmer sidst overskriver den anden. Den ene opgave forsvinder uden en fejl. En kø, der gemmer én ad gangen, eller en database kunne løse det.
+Før kunne begge læse den samme liste, før nogen havde gemt. Så tilføjede hver sin opgave til sin egen kopi, og den der gemte sidst overskrev den anden. Opgaver forsvandt uden en fejl. Vi viste det med en test, hvor 10 samtidige POST'er kun gemte 2 opgaver. Nu kører alle operationer i servicen gennem en kø (en kæde af promises), så den næste først starter, når den forrige er helt færdig med at læse og skrive. Køen virker kun, så længe der er én server proces. Kører der flere processer, ved de ikke om hinandens køer, og så skal man bruge en database.
 
 ### 4. Hvordan kunne man udvide med status, redigering eller deadlines?
 
-`done` findes allerede på opgaven. Man kunne lave en PATCH route på `/api/tasks/:id`, der ændrer `done` eller `text`, og en knap eller et afkrydsningsfelt i frontenden. En deadline kunne være et nyt felt som `dueDate`, som tjekkes i servicen. Ukendt id skal give 404, ligesom ved DELETE.
+Status er lavet: `PATCH /api/tasks/:id` med `{ "done": true }` giver 200 og den opdaterede opgave, 400 hvis `done` ikke er sand eller falsk, og 404 ved ukendt id. Frontenden har et afkrydsningsfelt. Redigering af tekst kunne bruge samme PATCH route med `text`, og tjekkes på samme måde som ved POST. En deadline kunne være et nyt felt som `dueDate`, som tjekkes i servicen.
+
+## Arkitektur og lag
+
+Controlleren kender kun HTTP: den læser request, tjekker input, vælger statuskode og logger fejl. Servicen kender reglerne: id, `done: false`, at en opgave skal findes, og køen. Repositoryet kender kun filen. Hvert lag kan testes for sig, og når vi skifter noget ud, skal vi kun ændre ét sted.
+
+Vi skifter fil ud med en database ved at lave et nyt repository med de samme metoder som nu, og give det til `createApp` i `server.js`. Controlleren og routes ændres ikke. Men kontrakten `readTasks` og `writeTasks` passer til en fil, hvor man skriver hele listen. En database kan tilføje, slette og ændre én opgave ad gangen, så den bedste løsning er at give repositoryet metoder som `add`, `remove` og `update`. Så flytter read-modify-write ud af servicen, og køen bliver unødvendig, fordi databasen selv håndterer samtidige ændringer. Det er derfor, vi i dag har køen i servicen, og ikke i repositoryet.
 
 ## Bonus
 
@@ -178,8 +189,8 @@ Efter feedback på Node ninja rettede vi disse ting i To Do Taming, så vi ikke 
 * Vi lavede flere API-tests (se Test (Mat)).
 * Vi stylede frontenden med Bootstrap fra CDN og lavede et lyst og et mørkt tema.
 
-Efter Mikkels spørgsmål om halvt så mange filer og regler beholdt vi service, repository og dependency injection, fordi de kan begrundes og testes. Vi fjernede `routes/`, `contracts.js` og lag reglerne i ESLint, og samlede controller og service i deres factory funktioner. Derfor er `max-lines-per-function` hævet fra 25 til 40.
+Efter Mikkels spørgsmål om halvt så mange filer og regler beholdt vi service, repository og dependency injection, fordi de kan begrundes og testes. Vi fjernede `routes/`, `contracts.js` og lag reglerne i ESLint, og samlede controller og service i deres factory funktioner. Derfor er `max-lines-per-function` hævet fra 25 til 40, og senere til 60, da controller og service fik fire operationer hver. `complexity` er stadig 6, så hver enkelt handler skal stadig være enkel.
 
-Opgavetekst har nu en maksimal længde på 200 tegn. Længere tekst giver 400 med en fast dansk besked.
+Opgavetekst har en maksimal længde på 200 tegn, og længden tjekkes på den trimmede tekst. Længere tekst giver 400 med en fast dansk besked.
 
 De ekstra API-tests, errorHandler-rettelsen, de kortere agentinstruktioner, forenklingen af strukturen, længdegrænsen, Bootstrap stylingen og Gons to ekstra svar om service laget og await er skrevet af Nicki.

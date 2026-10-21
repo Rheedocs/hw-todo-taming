@@ -32,17 +32,27 @@ function renderTasks(tasks) {
   taskList.replaceChildren();
   tasks.forEach((task) => {
     const item = document.createElement('li');
+    const left = document.createElement('div');
+    const checkbox = document.createElement('input');
     const text = document.createElement('span');
     const button = document.createElement('button');
 
     item.className = 'list-group-item d-flex justify-content-between align-items-center';
+    left.className = 'd-flex align-items-center gap-2';
+    checkbox.type = 'checkbox';
+    checkbox.className = 'form-check-input mt-0';
+    checkbox.checked = task.done;
+    checkbox.setAttribute('aria-label', `Marker ${task.text} som færdig`);
+    checkbox.addEventListener('change', () => setDone(task.id, checkbox.checked));
     text.textContent = task.text;
+    text.classList.toggle('text-decoration-line-through', task.done);
     button.type = 'button';
     button.className = 'btn btn-outline-danger btn-sm';
     button.textContent = 'Slet';
     button.setAttribute('aria-label', `Slet ${task.text}`);
     button.addEventListener('click', () => deleteTask(task.id));
-    item.append(text, button);
+    left.append(checkbox, text);
+    item.append(left, button);
     taskList.append(item);
   });
 }
@@ -85,6 +95,25 @@ async function deleteTask(id) {
     await loadTasks();
   } catch {
     showError('Der opstod en fejl ved sletning af opgaven.');
+  }
+}
+
+async function setDone(id, done) {
+  try {
+    const response = await fetch(`/api/tasks/${encodeURIComponent(id)}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ done }),
+    });
+    if (!response.ok) {
+      showError('Opgaven kunne ikke opdateres.');
+      await loadTasks();
+      return;
+    }
+    clearError();
+    await loadTasks();
+  } catch {
+    showError('Der opstod en fejl ved opdatering af opgaven.');
   }
 }
 

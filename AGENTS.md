@@ -22,18 +22,19 @@ CommonJS only. The server listens on port 3000. Keep the design small and make e
 ## API
 
 1. GET `/api/tasks` gives 200 and a list.
-2. POST `/api/tasks` with `{ "text": "..." }` gives 201 and the new task. Missing, empty, whitespace-only, or longer than 200 characters gives 400.
+2. POST `/api/tasks` with `{ "text": "..." }` gives 201 and the new task. Text is trimmed on the server. Missing, empty, whitespace-only, or longer than 200 characters (after trimming) gives 400.
 3. DELETE `/api/tasks/:id` gives 204 with no body. Unknown id gives 404.
-4. Unknown route gives 404. Invalid JSON gives 400. Other errors give 500.
+4. PATCH `/api/tasks/:id` with `{ "done": true|false }` gives 200 and the updated task. Non-boolean `done` gives 400. Unknown id gives 404.
+5. Unknown route gives 404. Invalid JSON gives 400. Other errors give 500.
 
-Errors are `{ "error": "..." }` with fixed Danish text, never `err.message` or a stack trace. Use `req.body?.text` and register `notFound` after all other middleware.
+Errors are `{ "error": "..." }` with fixed Danish text, never `err.message` or a stack trace. Controllers use `catch (error)` and log it with `console.error` on the server. The service runs every operation through a queue. Use `req.body?.text` and register `notFound` after all other middleware.
 
 ## Frontend
 
 1. Plain JavaScript with `fetch`. POST needs `Content-Type: application/json` and `JSON.stringify({ text })`.
 2. Never call `response.json()` on DELETE, it has no body.
 3. Use `createElement` and `textContent`, never `innerHTML`.
-4. Check `response.ok` and show an error message. Call `loadTasks()` after add and delete.
+4. Check `response.ok` and show an error message. Call `loadTasks()` after add, delete and status change.
 
 ## Rules
 
