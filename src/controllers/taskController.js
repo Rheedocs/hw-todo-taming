@@ -14,8 +14,9 @@ function createTaskController(taskService) {
     };
 
     const handleAddTask = async (req, res) => {
-        const text = req.body?.text;
-        if (typeof text !== 'string' || text.trim() === '') {
+        const rawText = req.body?.text;
+        const text = typeof rawText === 'string' ? rawText.trim() : '';
+        if (text === '') {
             return res.status(400).json({ error: 'Opgavens tekst må ikke være tom.' });
         }
         if (text.length > MAX_TEXT_LENGTH) {

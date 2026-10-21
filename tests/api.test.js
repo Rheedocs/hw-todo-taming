@@ -208,3 +208,20 @@ test('getUnknownRoute_unmatchedPath_returns404', async (t) => {
     // Assert
     assert.equal(response.status, 404);
 });
+
+test('postTasks_textWithSurroundingSpaces_returnsTrimmedText', async (t) => {
+    // Arrange
+    const baseUrl = startTestServer(t);
+
+    // Act
+    const response = await fetch(`${baseUrl}/api/tasks`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text: '   Trim this text   ' }),
+    });
+    const task = await response.json();
+
+    // Assert
+    assert.equal(response.status, 201);
+    assert.equal(task.text, 'Trim this text');
+});
