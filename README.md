@@ -44,7 +44,7 @@ Siden henter opgaver fra `/api/tasks` med `fetch`. Tilføj sender POST, slet sen
 
 ## Fejlhåndtering og 404 (Nicki)
 
-Når noget går galt i controlleren, bruger vi `catch (error)` og skriver fejlen med `console.error` på serveren, med hvad vi prøvede at gøre. Brugeren får stadig kun en fast dansk besked, så udvikleren kan se den rigtige fejl i terminalen uden at brugeren får den at se.
+I controlleren bruger vi `catch (error)` og skriver fejlen med `console.error`, så udvikleren kan se den i terminalen. Brugeren får stadig kun en fast dansk besked.
 
 `notFound` svarer 404, når ingen route matcher. `errorHandler` svarer 400 ved ugyldig JSON (`err.type === 'entity.parse.failed'`) og 500 ved alt andet. Beskeden er altid en fast dansk tekst, aldrig `err.message` eller stack trace. `errorHandler` har de fire almindelige parametre (`err, req, res, next`), som Express kræver for en fejlmiddleware, og `max-params` i ESLint er sat til 4, så det er tilladt.
 
@@ -150,7 +150,7 @@ For at bruge `fetch` skal appen lytte på en port. En fast port som 3000 kan giv
 
 Efter feedback er der kommet seks tests til, og efter Mikkels anden feedback fem mere (se nedenfor). De seks: `postTasks_thenGetTasks_returnsNewTask` (POST og så GET), `postTasks_emptyText_returns400`, `postTasks_onlySpaces_returns400`, `postTasks_invalidJson_returns400` (tjekker også den danske fejltekst), `postTasks_writeFails_returns500` (fake repository hvor `writeTasks` kaster) og `postTasks_textTooLong_returns400` (tekst over 200 tegn).
 
-Efter Mikkels anden feedback: `postTasks_textWithSurroundingSpaces_returnsTrimmedText` (serveren gemmer den trimmede tekst), `postTasks_tenConcurrentRequests_savesAllTasks` (ti POST'er på samme tid, og alle ti skal gemmes), `patchTask_doneTrue_returns200AndUpdatedTask`, `patchTask_unknownId_returns404` og `patchTask_doneNotBoolean_returns400`. `postTasks_writeFails_returns500` tjekker nu også, at fejlen bliver logget. Samtidighedstesten bruger en langsom fake repository (5 ms pr. læsning og skrivning), så requests når at overlappe. Uden køen i servicen gemte testen kun 2 af 10 opgaver, med køen gemmer den alle 10.
+Efter Mikkels anden feedback kom der tests til trim, til PATCH (200, 404 og 400) og en test, der sender 10 POST'er på samme tid. Den bruger en fake repository, der er langsom, så requests overlapper. Uden køen blev kun 2 af 10 gemt. Testen af 500 tjekker nu også, at fejlen bliver logget.
 
 ## AI brug (Mat)
 
@@ -168,17 +168,17 @@ Nu læser og skriver vi hele filen, også når vi kun tilføjer én opgave. En d
 
 ### 3. Hvad sker der, hvis to brugere tilføjer på samme tid?
 
-Før kunne begge læse den samme liste, før nogen havde gemt. Så tilføjede hver sin opgave til sin egen kopi, og den der gemte sidst overskrev den anden. Opgaver forsvandt uden en fejl. Vi viste det med en test, hvor 10 samtidige POST'er kun gemte 2 opgaver. Nu kører alle operationer i servicen gennem en kø (en kæde af promises), så den næste først starter, når den forrige er helt færdig med at læse og skrive. Køen virker kun, så længe der er én server proces. Kører der flere processer, ved de ikke om hinandens køer, og så skal man bruge en database.
+Før kunne to requests læse den samme liste, før nogen havde gemt. Hver tilføjede så sin opgave til sin egen kopi, og den der gemte sidst, overskrev den anden. Opgaven forsvandt uden en fejl. Vi viste det med en test, hvor 10 POST'er på samme tid kun gemte 2 opgaver. Nu går alle operationer i servicen gennem en kø, så den næste først starter, når den forrige er færdig. Køen virker kun med én server. Med flere servere skal man bruge en database.
 
 ### 4. Hvordan kunne man udvide med status, redigering eller deadlines?
 
-Status er lavet: `PATCH /api/tasks/:id` med `{ "done": true }` giver 200 og den opdaterede opgave, 400 hvis `done` ikke er sand eller falsk, og 404 ved ukendt id. Frontenden har et afkrydsningsfelt. Redigering af tekst kunne bruge samme PATCH route med `text`, og tjekkes på samme måde som ved POST. En deadline kunne være et nyt felt som `dueDate`, som tjekkes i servicen.
+Status er lavet. `PATCH /api/tasks/:id` med `{ "done": true }` ændrer `done`. Hvis `done` ikke er sand eller falsk, svarer den 400, og hvis id'et ikke findes, svarer den 404. Frontenden har et afkrydsningsfelt. Tekst kunne ændres med den samme route, og en deadline kunne være et nyt felt som `dueDate`, der tjekkes i servicen.
 
 ## Arkitektur og lag
 
-Controlleren kender kun HTTP: den læser request, tjekker input, vælger statuskode og logger fejl. Servicen kender reglerne: id, `done: false`, at en opgave skal findes, og køen. Repositoryet kender kun filen. Hvert lag kan testes for sig, og når vi skifter noget ud, skal vi kun ændre ét sted.
+Controlleren tager sig af HTTP: den læser requesten, tjekker input og vælger statuskode. Servicen har reglerne, fx id, `done: false` og køen. Repositoryet læser og skriver kun filen. Hvert lag kan testes for sig.
 
-Vi skifter fil ud med en database ved at lave et nyt repository med de samme metoder som nu, og give det til `createApp` i `server.js`. Controlleren og routes ændres ikke. Men kontrakten `readTasks` og `writeTasks` passer til en fil, hvor man skriver hele listen. En database kan tilføje, slette og ændre én opgave ad gangen, så den bedste løsning er at give repositoryet metoder som `add`, `remove` og `update`. Så flytter read-modify-write ud af servicen, og køen bliver unødvendig, fordi databasen selv håndterer samtidige ændringer. Det er derfor, vi i dag har køen i servicen, og ikke i repositoryet.
+Hvis vi vil bruge en database, laver vi et nyt repository og giver det til `createApp` i `server.js`. Controlleren ændres ikke. Men `readTasks` og `writeTasks` passer til en fil. En database kunne have `add`, `remove` og `update`, og så er køen ikke nødvendig, fordi databasen selv klarer samtidige ændringer.
 
 ## Bonus
 
