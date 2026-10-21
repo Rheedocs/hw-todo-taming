@@ -43,7 +43,7 @@ function renderTasks(tasks) {
     checkbox.className = 'form-check-input mt-0';
     checkbox.checked = task.done;
     checkbox.setAttribute('aria-label', `Marker ${task.text} som færdig`);
-    checkbox.addEventListener('change', () => setDone(task.id, checkbox.checked));
+    checkbox.addEventListener('change', () => setDone(task.id, checkbox));
     text.textContent = task.text;
     text.classList.toggle('text-decoration-line-through', task.done);
     button.type = 'button';
@@ -98,21 +98,21 @@ async function deleteTask(id) {
   }
 }
 
-async function setDone(id, done) {
+async function setDone(id, checkbox) {
   try {
     const response = await fetch(`/api/tasks/${encodeURIComponent(id)}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ done }),
+      body: JSON.stringify({ done: checkbox.checked }),
     });
     if (!response.ok) {
+      checkbox.checked = !checkbox.checked;
       showError('Opgaven kunne ikke opdateres.');
-      await loadTasks();
       return;
     }
-    clearError();
     await loadTasks();
   } catch {
+    checkbox.checked = !checkbox.checked;
     showError('Der opstod en fejl ved opdatering af opgaven.');
   }
 }
